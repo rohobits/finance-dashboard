@@ -75,6 +75,7 @@
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
 
+    // Helper function to fetch data from Google Sheets
     const fetchSheetData = async (range) => {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
       const response = await fetch(url);
@@ -82,6 +83,7 @@
       return data.values;
     };
 
+    // Renders an HTML table given 2D array data
     const renderTable = (data, elementId) => {
       const table = document.getElementById(elementId);
       if (!data || data.length === 0) {
@@ -95,6 +97,42 @@
       table.innerHTML = html;
     };
 
+    // Transforms balance history data:
+    // From "Balance History (BTS)!A1:D", we extract:
+    // Column A: Date, Column B: Account, Column D: Current Balance.
+    const transformBalanceData = (data) => {
+      // Define custom header row
+      const header = ['Date', 'Account', 'Current Balance'];
+      const transformed = [header];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        transformed.push([ row[0] || '', row[1] || '', row[3] || '' ]);
+      }
+      return transformed;
+    };
+
+    // Transforms transactions data:
+    // From "Transactions (BTS)!B1:I", we extract:
+    // Column B: Date, C: Description, F: Outflow, G: Inflow, H: Auto Category, I: Account.
+    const transformTransactionsData = (data) => {
+      const header = ['Date', 'Description', 'Outflow', 'Inflow', 'Auto Category', 'Account'];
+      const transformed = [header];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        transformed.push([
+          row[0] || '', // Date (Column B)
+          row[1] || '', // Description (Column C)
+          row[4] || '', // Outflow (Column F)
+          row[5] || '', // Inflow (Column G)
+          row[6] || '', // Auto Category (Column H)
+          row[7] || ''  // Account (Column I)
+        ]);
+      }
+      return transformed;
+    };
+
+    // Render the balance line chart using the transformed balance data.
+    // Expects date at index 0, current balance at index 2.
     const renderBalanceChart = (balanceData) => {
       const dates = balanceData.slice(1).map(row => row[0]);
       const balances = balanceData.slice(1).map(row => parseFloat(row[2]) || 0);
@@ -122,9 +160,11 @@
       });
     };
 
+    // Render a pie chart for spending by category.
+    // After transformation, auto category is at index 4 and outflow is at index 2.
     const renderCategoryPieChart = (transactions) => {
-      const categoryIndex = 6; // Column H (auto category)
-      const outflowIndex = 4; // Column F (outflow)
+      const categoryIndex = 4; // Auto Category (Column H after transformation)
+      const outflowIndex = 2;  // Outflow (Column F after transformation)
       const dataMap = {};
 
       for (let i = 1; i < transactions.length; i++) {
@@ -144,7 +184,7 @@
           datasets: [{
             label: 'Spending by Category',
             data: values,
-            backgroundColor: labels.map((_, i) => `hsl(${i * 35 % 360}, 70%, 60%)`)
+            backgroundColor: labels.map((_, i) => `hsl(${(i * 35) % 360}, 70%, 60%)`)
           }]
         },
         options: {
@@ -153,48 +193,36 @@
       });
     };
 
+    // Render the goals table.
+    // It uses the goals data and the transformed balance data.
     const renderGoalsTable = (goals, balances) => {
       const table = document.getElementById('goals-table');
       let html = '';
       for (let i = 1; i < goals.length; i++) {
         const [account, target] = goals[i];
         const targetAmount = parseFloat(target);
-        const latestBalance = balances.reverse().find(row => row[1] === account);
+        // Find the latest balance for the given account.
+        const latestBalance = balances.slice(1).reverse().find(row => row[1] === account);
         const balanceAmount = latestBalance ? parseFloat(latestBalance[2]) : 0;
-        const progress = ((balanceAmount / targetAmount) * 100).toFixed(1);
+        const progress = targetAmount ? ((balanceAmount / targetAmount) * 100).toFixed(1) : '0.0';
         html += `<tr><td>${account}</td><td>${target}</td><td>${balanceAmount}</td><td>${progress}%</td></tr>`;
       }
       table.innerHTML += html;
     };
 
+    // Main function to load the dashboard data and render charts/tables.
     const loadDashboard = async () => {
-      const transactions = await fetchSheetData('Transactions (BTS)!B1:I');
+      // Fetch and transform transactions data.
+      const transactionsRaw = await fetchSheetData('Transactions (BTS)!B1:I');
+      const transactions = transformTransactionsData(transactionsRaw);
       renderTable(transactions, 'transactions-table');
       renderCategoryPieChart(transactions);
 
-      const accounts = [...new Set(transactions.slice(1).map(row => row[7]))];
+      // Populate the filter dropdown using the "Account" (last column, index 5) from transactions.
       const accountFilter = document.getElementById('account-filter');
+      const accounts = [...new Set(transactions.slice(1).map(row => row[5]))];
       accounts.forEach(acc => {
         const option = document.createElement('option');
         option.value = acc;
         option.textContent = acc;
-        accountFilter.appendChild(option);
-      });
-      accountFilter.addEventListener('change', () => {
-        const filtered = accountFilter.value === 'All' ? transactions : [transactions[0], ...transactions.slice(1).filter(row => row[7] === accountFilter.value)];
-        renderTable(filtered, 'transactions-table');
-        renderCategoryPieChart(filtered);
-      });
-
-      const balanceHistory = await fetchSheetData('Balance History (BTS)!A1:D');
-      renderTable(balanceHistory, 'balance-table');
-      renderBalanceChart(balanceHistory);
-
-      const goals = await fetchSheetData('Goals!A1:B');
-      renderGoalsTable(goals, balanceHistory.slice(1));
-    };
-
-    loadDashboard();
-  </script>
-</body>
-</html>
+        accountFilter
