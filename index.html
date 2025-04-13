@@ -75,15 +75,26 @@
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
 
-    // Helper function to fetch data from Google Sheets
+    // Helper function to fetch data from Google Sheets with error logging.
     const fetchSheetData = async (range) => {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      return data.values;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        if (!data.values) {
+          console.error('No data returned for range:', range, data);
+        }
+        return data.values;
+      } catch (error) {
+        console.error('Error fetching sheet data:', error);
+        return null;
+      }
     };
 
-    // Renders an HTML table given 2D array data
+    // Render an HTML table given 2D array data.
     const renderTable = (data, elementId) => {
       const table = document.getElementById(elementId);
       if (!data || data.length === 0) {
@@ -97,11 +108,10 @@
       table.innerHTML = html;
     };
 
-    // Transforms balance history data:
-    // From "Balance History (BTS)!A1:D", we extract:
-    // Column A: Date, Column B: Account, Column D: Current Balance.
+    // Transform balance history data from "Balance History (BTS)!A1:D":
+    // Date from column A, Account from column B, Current Balance from column D.
     const transformBalanceData = (data) => {
-      // Define custom header row
+      if (!data || data.length === 0) return [];
       const header = ['Date', 'Account', 'Current Balance'];
       const transformed = [header];
       for (let i = 1; i < data.length; i++) {
@@ -111,10 +121,11 @@
       return transformed;
     };
 
-    // Transforms transactions data:
-    // From "Transactions (BTS)!B1:I", we extract:
-    // Column B: Date, C: Description, F: Outflow, G: Inflow, H: Auto Category, I: Account.
+    // Transform transaction data from "Transactions (BTS)!B1:I":
+    // Date from column B, Description from column C, Outflow from F, Inflow from G,
+    // Auto Category from H, Account from I.
     const transformTransactionsData = (data) => {
+      if (!data || data.length === 0) return [];
       const header = ['Date', 'Description', 'Outflow', 'Inflow', 'Auto Category', 'Account'];
       const transformed = [header];
       for (let i = 1; i < data.length; i++) {
@@ -132,7 +143,7 @@
     };
 
     // Render the balance line chart using the transformed balance data.
-    // Expects date at index 0, current balance at index 2.
+    // Date is at index 0, current balance at index 2.
     const renderBalanceChart = (balanceData) => {
       const dates = balanceData.slice(1).map(row => row[0]);
       const balances = balanceData.slice(1).map(row => parseFloat(row[2]) || 0);
@@ -161,10 +172,10 @@
     };
 
     // Render a pie chart for spending by category.
-    // After transformation, auto category is at index 4 and outflow is at index 2.
+    // After transformation, Auto Category is at index 4 and Outflow is at index 2.
     const renderCategoryPieChart = (transactions) => {
-      const categoryIndex = 4; // Auto Category (Column H after transformation)
-      const outflowIndex = 2;  // Outflow (Column F after transformation)
+      const categoryIndex = 4; // Auto Category (after transformation)
+      const outflowIndex = 2;  // Outflow (after transformation)
       const dataMap = {};
 
       for (let i = 1; i < transactions.length; i++) {
@@ -193,8 +204,7 @@
       });
     };
 
-    // Render the goals table.
-    // It uses the goals data and the transformed balance data.
+    // Render the goals table using the goals data and the transformed balance data.
     const renderGoalsTable = (goals, balances) => {
       const table = document.getElementById('goals-table');
       let html = '';
@@ -225,4 +235,29 @@
         const option = document.createElement('option');
         option.value = acc;
         option.textContent = acc;
-        accountFilter
+        accountFilter.appendChild(option);
+      });
+      // Filter transactions when the account filter changes.
+      accountFilter.addEventListener('change', () => {
+        const filtered = accountFilter.value === 'All'
+          ? transactions
+          : [transactions[0], ...transactions.slice(1).filter(row => row[5] === accountFilter.value)];
+        renderTable(filtered, 'transactions-table');
+        renderCategoryPieChart(filtered);
+      });
+
+      // Fetch, transform, and render balance history.
+      const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
+      const balanceHistory = transformBalanceData(balanceHistoryRaw);
+      renderTable(balanceHistory, 'balance-table');
+      renderBalanceChart(balanceHistory);
+
+      // Fetch and render goals.
+      const goals = await fetchSheetData('Goals!A1:B');
+      renderGoalsTable(goals, balanceHistory);
+    };
+
+    loadDashboard();
+  </script>
+</body>
+</html>
