@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoFi Accounts</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    /* Navigation styling */
+    nav {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      margin: 0 10px;
+      text-decoration: none;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    h1 {
+      text-align: center;
+    }
+    table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    input[type="number"] {
+      width: 100px;
+      padding: 4px;
+      font-size: 1em;
+    }
+    progress {
+      width: 100%;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <a href="./index.html">Dashboard</a> |
+    <a href="./account-balances.html">Account Balances</a> |
+    <a href="./sofi-accounts.html">SoFi Accounts</a>
+  </nav>
+
+  <h1>SoFi Accounts</h1>
+  <!-- Table header for SoFi accounts -->
+  <table id="sofi-accounts-table">
+    <tr>
+      <th>Account</th>
+      <th>Current Balance</th>
+      <th>Target Amount</th>
+      <th>Progress</th>
+    </tr>
+  </table>
+
+  <script>
+    const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
+    const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
+    
+    // List of SoFi account names to show
+    const sofiAccounts = [
+      "SoFi SoFi Savings (4386)",
+      "SoFi Security Deposit (4501)",
+      "SoFi Maintenance Fund (4502)",
+      "SoFi Vacancy Fund (4503)",
+      "SoFi SoFi Checking (9237)"
+    ];
+    
+    // Fetch data from Google Sheets given a range.
+    const fetchSheetData = async (range) => {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        if (!data.values) {
+          console.error('No data returned for range:', range, data);
+        }
+        return data.values;
+      } catch (error) {
+        console.error('Error fetching sheet data:', error);
+        return null;
+      }
+    };
+    
+    // Transforms Balance History data from "Balance History (BTS)!A1:D".
+    // Expected columns: Date from A, Account from B, Current Balance from D.
+    const transformBalanceData = (data) => {
+      if (!data || data.length === 0) return [];
+      const header = ['Date', 'Account', 'Current Balance'];
+      const transformed = [header];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        transformed.push([ row[0] || '', row[1] || '', row[3] || '' ]);
+      }
+      return transformed;
+    };
+    
+    // Groups balance data by account and returns an array of objects.
+    // For each account, it finds the entry with the most recent date.
+    const getLatestBalances = (balanceData) => {
+      if (!balanceData || balanceData.length < 2) return [];
+      const latestBalances = {};
+      for (let i = 1; i < balanceData.length; i++) {
+        const [dateStr, account, balance] = balanceData[i];
+        if (!dateStr || !account) continue;
+        const date = new Date(dateStr);
+        if (!latestBalances[account] || date > latestBalances[account].date) {
+          latestBalances[account] = { date, balance };
+        }
+      }
+      const result = [];
+      for (const account in latestBalances) {
+        result.push({ account, balance: latestBalances[account].balance });
+      }
+      return result;
+    };
+    
+    // Load and render SoFi accounts with input for target and a progress bar.
+    const loadSoFiAccounts = async () => {
+      const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
+      const transformedBalances = transformBalanceData(balanceHistoryRaw);
+      const latestBalances = getLatestBalances(transformedBalances);
+    
+      // Filter for only the specified SoFi accounts.
+      const sofiData = latestBalances.filter(item => sofiAccounts.includes(item.account));
+    
+      const table = document.getElementById('sofi-accounts-table');
+    
+      sofiData.forEach(item => {
+        // Create a sanitized string for element IDs.
+        const sanitized = item.account.replace(/\s+/g, '').replace(/[()]/g, '');
+    
+        // Create table row.
+        const row = document.createElement('tr');
+    
+        // Account name cell.
+        const cellAccount = document.createElement('td');
+        cellAccount.textContent = item.account;
+        row.appendChild(cellAccount);
+    
+        // Current balance cell.
+        const cellBalance = document.createElement('td');
+        cellBalance.textContent = item.balance;
+        row.appendChild(cellBalance);
+    
+        // Target amount cell with input field.
+        const cellTarget = document.createElement('td');
+        const inputTarget = document.createElement('input');
+        inputTarget.type = 'number';
+        inputTarget.placeholder = 'Enter target';
+        inputTarget.id = `target-${sanitized}`;
+        cellTarget.appendChild(inputTarget);
+        row.appendChild(cellTarget);
+    
+        // Progress cell with progress bar.
+        const cellProgress = document.createElement('td');
+        const progressBar = document.createElement('progress');
+        progressBar.id = `progress-${sanitized}`;
+        progressBar.value = 0;
+        progressBar.max = 100;
+        cellProgress.appendChild(progressBar);
+        row.appendChild(cellProgress);
+    
+        // Append the row to the table.
+        table.appendChild(row);
+    
+        // Update the progress bar when the user inputs a target amount.
+        inputTarget.addEventListener('input', () => {
+          const target = parseFloat(inputTarget.value);
+          const current = parseFloat(item.balance) || 0;
+          let progressPercent = 0;
+          if (target > 0) {
+            progressPercent = (current / target) * 100;
+            if (progressPercent > 100) {
+              progressPercent = 100;
+            }
+          }
+          progressBar.value = progressPercent;
+        });
+      });
+    };
+    
+    document.addEventListener('DOMContentLoaded', loadSoFiAccounts);
+  </script>
+</body>
+</html>
