@@ -41,29 +41,35 @@
       background-color: #4CAF50;
       color: white;
     }
-    input[type="number"] {
+    /* Style the target input and use type text so we can format its value */
+    input[type="text"] {
       width: 100px;
       padding: 4px;
       font-size: 1em;
     }
-    progress {
+    /* Custom progress bar styles */
+    .progress-container {
+      position: relative;
       width: 100%;
       height: 20px;
+      background: #ddd;
+      border: 1px solid #ccc;
     }
-    .progress-wrapper {
-      position: relative;
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: red;
+      transition: width 0.3s ease;
     }
     .progress-text {
       position: absolute;
+      width: 100%;
+      text-align: center;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
       line-height: 20px;
       font-size: 0.9em;
       color: #000;
-      text-align: center;
-      pointer-events: none;
     }
   </style>
 </head>
@@ -150,77 +156,85 @@
       }
       return result;
     };
-
-    // Helper function to parse a balance string, removing non-numeric characters.
+    
+    // Helper function to parse a balance or currency string.
     const parseBalance = (balanceStr) => {
       if (!balanceStr) return 0;
-      // Remove any character except digits, period, and minus sign.
       return parseFloat(balanceStr.replace(/[^0-9.-]+/g, "")) || 0;
     };
     
-    // Load and render SoFi accounts with input for target and a progress bar.
+    // Helper function to format a number as currency.
+    const formatCurrency = (amount) => {
+      return "$" + amount.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    };
+    
+    // Load and render SoFi accounts with target input and a custom progress bar.
     const loadSoFiAccounts = async () => {
       const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
       const transformedBalances = transformBalanceData(balanceHistoryRaw);
       const latestBalances = getLatestBalances(transformedBalances);
-    
+      
       // Filter for only the specified SoFi accounts.
       const sofiData = latestBalances.filter(item => sofiAccounts.includes(item.account));
-    
+      
       const table = document.getElementById('sofi-accounts-table');
-    
+      
       sofiData.forEach(item => {
         // Create a sanitized string for element IDs.
         const sanitized = item.account.replace(/\s+/g, '').replace(/[()]/g, '');
-    
+        
         // Create table row.
         const row = document.createElement('tr');
-    
+        
         // Account name cell.
         const cellAccount = document.createElement('td');
         cellAccount.textContent = item.account;
         row.appendChild(cellAccount);
-    
-        // Current balance cell.
+        
+        // Current balance cell, formatted as currency.
         const cellBalance = document.createElement('td');
-        cellBalance.textContent = item.balance;
+        const currentBalance = parseBalance(item.balance);
+        cellBalance.textContent = formatCurrency(currentBalance);
         row.appendChild(cellBalance);
-    
+        
         // Target amount cell with input field.
         const cellTarget = document.createElement('td');
         const inputTarget = document.createElement('input');
-        inputTarget.type = 'number';
+        inputTarget.type = 'text';
         inputTarget.placeholder = 'Enter target';
         inputTarget.id = `target-${sanitized}`;
         cellTarget.appendChild(inputTarget);
         row.appendChild(cellTarget);
-    
-        // Progress cell with progress bar and overlay text.
+        
+        // Progress cell with a custom progress bar.
         const cellProgress = document.createElement('td');
-        const progressWrapper = document.createElement('div');
-        progressWrapper.className = 'progress-wrapper';
-    
-        const progressBar = document.createElement('progress');
-        progressBar.id = `progress-${sanitized}`;
-        progressBar.value = 0;
-        progressBar.max = 100;
-    
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-container';
+        
+        const progressFill = document.createElement('div');
+        progressFill.className = 'progress-fill';
+        progressFill.style.width = '0%';
+        
         const progressText = document.createElement('span');
         progressText.className = 'progress-text';
         progressText.textContent = '0%';
-    
-        progressWrapper.appendChild(progressBar);
-        progressWrapper.appendChild(progressText);
-        cellProgress.appendChild(progressWrapper);
+        
+        progressContainer.appendChild(progressFill);
+        progressContainer.appendChild(progressText);
+        cellProgress.appendChild(progressContainer);
         row.appendChild(cellProgress);
-    
+        
         // Append the row to the table.
         table.appendChild(row);
-    
-        // Update the progress bar when the user inputs a target amount.
+        
+        // When the user inputs a target value, update the progress bar.
         inputTarget.addEventListener('input', () => {
-          const target = parseFloat(inputTarget.value);
-          const current = parseBalance(item.balance);
+          // Parse the target value, ignoring non-numeric characters.
+          const target = parseFloat(inputTarget.value.replace(/[^0-9.]/g, "")) || 0;
+          const current = currentBalance;
           let progressPercent = 0;
           if (target > 0) {
             progressPercent = (current / target) * 100;
@@ -228,9 +242,29 @@
               progressPercent = 100;
             }
           }
-          console.log(`Account: ${item.account} | Target: ${target} | Current: ${current} | Progress: ${progressPercent}%`);
-          progressBar.value = progressPercent;
-          progressText.textContent = `${progressPercent.toFixed(1)}%`;
+          // Update the fill width and overlay text.
+          progressFill.style.width = progressPercent + '%';
+          progressText.textContent = progressPercent.toFixed(1) + '%';
+          
+          // Update color based on progress.
+          if (progressPercent >= 95) {
+            progressFill.style.backgroundColor = 'green';
+          } else if (progressPercent >= 50) {
+            progressFill.style.backgroundColor = 'yellow';
+          } else {
+            progressFill.style.backgroundColor = 'red';
+          }
+        });
+        
+        // On blur, format the target input as currency.
+        inputTarget.addEventListener('blur', () => {
+          const targetNum = parseFloat(inputTarget.value.replace(/[^0-9.]/g, "")) || 0;
+          inputTarget.value = formatCurrency(targetNum);
+        });
+        // On focus, remove formatting for easier editing.
+        inputTarget.addEventListener('focus', () => {
+          const rawVal = inputTarget.value.replace(/[^0-9.]/g, "");
+          inputTarget.value = rawVal;
         });
       });
     };
