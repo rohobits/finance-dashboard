@@ -49,7 +49,7 @@
       border: 1px solid #ccc;
       background: #fff;
     }
-    /* Style for target display after entry: no white cell look */
+    /* Style for target display after entry: hides the white cell look */
     .target-display {
       display: inline-block;
       width: 100px;
@@ -111,6 +111,7 @@
     
     // List of Barclay account names to show.
     const barclayAccounts = [
+      "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
       "SoFi Maintenance Fund (4502)",
       "SoFi Vacancy Fund (4503)",
@@ -135,7 +136,7 @@
     };
     
     // Transform Balance History data from "Balance History (BTS)!A1:D".
-    // Expected columns: Date (A), Account (B), Current Balance (D).
+    // Expected: Date (A), Account (B), Current Balance (D).
     const transformBalanceData = (data) => {
       if (!data || data.length === 0) return [];
       const header = ['Date', 'Account', 'Current Balance'];
@@ -172,7 +173,7 @@
       return parseFloat(balanceStr.replace(/[^0-9.-]+/g, "")) || 0;
     };
     
-    // Helper to format a number as currency.
+    // Helper to format a number as US currency.
     const formatCurrency = (amount) => {
       return "$" + amount.toLocaleString("en-US", {
         minimumFractionDigits: 2,
@@ -198,7 +199,7 @@
         // Create table row.
         const row = document.createElement('tr');
         
-        // Account name cell.
+        // Account cell.
         const cellAccount = document.createElement('td');
         cellAccount.textContent = item.account;
         row.appendChild(cellAccount);
@@ -209,9 +210,8 @@
         cellBalance.textContent = formatCurrency(currentBalance);
         row.appendChild(cellBalance);
         
-        // Target amount cell with input element and a display element.
+        // Target amount cell with an input element.
         const cellTarget = document.createElement('td');
-        // The input element for editing.
         const inputTarget = document.createElement('input');
         inputTarget.type = 'text';
         inputTarget.placeholder = 'Enter target';
@@ -241,7 +241,14 @@
         // Append the row to the table.
         table.appendChild(row);
         
-        // --- Input handling to allow Enter key to trigger blur ---
+        // --- Restore saved target if available ---
+        const savedTarget = localStorage.getItem("target-" + sanitized);
+        if (savedTarget) {
+          inputTarget.value = savedTarget;
+          finalizeInput();
+        }
+        
+        // Allow pressing Enter to trigger blur.
         inputTarget.addEventListener('keydown', (event) => {
           if (event.key === 'Enter') {
             event.preventDefault();
@@ -249,21 +256,22 @@
           }
         });
         
-        // Function that finalizes the input (formats and hides the input).
+        // Function to finalize input: save, format, hide input, update progress.
         const finalizeInput = () => {
           const targetRaw = inputTarget.value;
           const targetNum = parseFloat(targetRaw.replace(/[^0-9.]/g, "")) || 0;
+          // Save to localStorage
+          localStorage.setItem("target-" + sanitized, inputTarget.value);
+          
           if (targetNum > 0) {
             inputTarget.value = formatCurrency(targetNum);
-            // Hide the input and replace with a static display element.
+            // Hide the input and create a display element.
             inputTarget.style.display = 'none';
-            // Create the display span if it doesn't exist.
             let displaySpan = cellTarget.querySelector('.target-display');
             if (!displaySpan) {
               displaySpan = document.createElement('span');
               displaySpan.className = 'target-display';
               cellTarget.appendChild(displaySpan);
-              // Allow clicking the display to re-enter edit mode.
               displaySpan.addEventListener('click', () => {
                 displaySpan.remove();
                 inputTarget.style.display = '';
@@ -272,12 +280,9 @@
             }
             displaySpan.textContent = formatCurrency(targetNum);
           } else {
-            // If target is zero or empty, ensure the input remains visible.
             inputTarget.style.display = '';
             const displaySpan = cellTarget.querySelector('.target-display');
-            if (displaySpan) {
-              displaySpan.remove();
-            }
+            if (displaySpan) displaySpan.remove();
           }
           
           // Update progress bar.
@@ -290,7 +295,7 @@
           }
           progressFill.style.width = progressPercent + '%';
           progressText.textContent = progressPercent.toFixed(1) + '%';
-          // Update color based on thresholds.
+          // Set color based on progress.
           if (progressPercent >= 95) {
             progressFill.style.backgroundColor = 'green';
           } else if (progressPercent >= 50) {
@@ -305,9 +310,8 @@
         // On blur, finalize the input.
         inputTarget.addEventListener('blur', finalizeInput);
         
-        // Optionally, update progress dynamically on input (if desired).
+        // On input, if cleared, remove static display.
         inputTarget.addEventListener('input', () => {
-          // If the input is cleared, remove any static display.
           if (inputTarget.value.trim() === "") {
             const displaySpan = cellTarget.querySelector('.target-display');
             if (displaySpan) displaySpan.remove();
