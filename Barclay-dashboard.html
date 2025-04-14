@@ -50,6 +50,21 @@
       width: 100%;
       height: 20px;
     }
+    .progress-wrapper {
+      position: relative;
+    }
+    .progress-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      line-height: 20px;
+      font-size: 0.9em;
+      color: #000;
+      text-align: center;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -75,7 +90,7 @@
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
     
-    // List of SoFi account names to show
+    // List of SoFi account names to show.
     const sofiAccounts = [
       "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
@@ -111,13 +126,13 @@
       const transformed = [header];
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
-        transformed.push([ row[0] || '', row[1] || '', row[3] || '' ]);
+        transformed.push([row[0] || '', row[1] || '', row[3] || '']);
       }
       return transformed;
     };
     
     // Groups balance data by account and returns an array of objects.
-    // For each account, it finds the entry with the most recent date.
+    // For each account, finds the entry with the most recent date.
     const getLatestBalances = (balanceData) => {
       if (!balanceData || balanceData.length < 2) return [];
       const latestBalances = {};
@@ -173,13 +188,24 @@
         cellTarget.appendChild(inputTarget);
         row.appendChild(cellTarget);
     
-        // Progress cell with progress bar.
+        // Progress cell with progress bar and text overlay.
         const cellProgress = document.createElement('td');
+        const progressWrapper = document.createElement('div');
+        progressWrapper.className = 'progress-wrapper';
+    
         const progressBar = document.createElement('progress');
         progressBar.id = `progress-${sanitized}`;
         progressBar.value = 0;
         progressBar.max = 100;
-        cellProgress.appendChild(progressBar);
+    
+        // Add a span element to show the text percentage.
+        const progressText = document.createElement('span');
+        progressText.className = 'progress-text';
+        progressText.textContent = '0%';
+    
+        progressWrapper.appendChild(progressBar);
+        progressWrapper.appendChild(progressText);
+        cellProgress.appendChild(progressWrapper);
         row.appendChild(cellProgress);
     
         // Append the row to the table.
@@ -196,7 +222,10 @@
               progressPercent = 100;
             }
           }
+          // Debug output in the console.
+          console.log(`Account: ${item.account} | Target: ${target} | Current: ${current} | Progress: ${progressPercent}%`);
           progressBar.value = progressPercent;
+          progressText.textContent = `${progressPercent.toFixed(1)}%`;
         });
       });
     };
