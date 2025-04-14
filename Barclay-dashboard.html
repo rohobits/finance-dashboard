@@ -41,11 +41,25 @@
       background-color: #4CAF50;
       color: white;
     }
-    /* Style the target input as text for formatting purposes */
-    input[type="text"] {
+    /* Style for target input when editing */
+    input.target-edit {
       width: 100px;
       padding: 4px;
       font-size: 1em;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+    /* Style for target display after entry: no white cell look */
+    .target-display {
+      display: inline-block;
+      width: 100px;
+      padding: 4px;
+      font-size: 1em;
+      font-weight: bold;
+      background: transparent;
+      border: none;
+      color: #000;
+      cursor: pointer;
     }
     /* Custom progress bar styles */
     .progress-container {
@@ -58,7 +72,6 @@
     .progress-fill {
       height: 100%;
       width: 0;
-      background: red;
       transition: width 0.3s ease, background-color 0.3s ease;
     }
     .progress-text {
@@ -69,14 +82,7 @@
       left: 0;
       line-height: 20px;
       font-size: 0.9em;
-      color: #000;
       pointer-events: none;
-    }
-    /* Styling applied to the target cell when a target value is entered */
-    td.filled {
-      background-color: #e0f7e9;   /* light green background */
-      border: 2px solid green;     /* thicker green border */
-      font-weight: bold;
     }
   </style>
 </head>
@@ -85,12 +91,12 @@
   <nav>
     <a href="./index.html">Dashboard</a> |
     <a href="./account-balances.html">Account Balances</a> |
-    <a href="./sofi-accounts.html">Barclay Accounts</a>
+    <a href="./barclay-accounts.html">Barclay Accounts</a>
   </nav>
 
   <h1>Barclay Accounts</h1>
-  <!-- Table header for Barclay Accounts -->
-  <table id="sofi-accounts-table">
+  <!-- Table header for Barclay accounts -->
+  <table id="barclay-accounts-table">
     <tr>
       <th>Account</th>
       <th>Current Balance</th>
@@ -103,8 +109,8 @@
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
     
-    // List of SoFi account names to show.
-    const sofiAccounts = [
+    // List of Barclay account names to show.
+    const barclayAccounts = [
       "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
       "SoFi Maintenance Fund (4502)",
@@ -112,14 +118,12 @@
       "SoFi SoFi Checking (9237)"
     ];
     
-    // Helper function to fetch data from Google Sheets given a range.
+    // Helper to fetch data from Google Sheets.
     const fetchSheetData = async (range) => {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
       try {
         const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
+        if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
         if (!data.values) {
           console.error('No data returned for range:', range, data);
@@ -131,8 +135,8 @@
       }
     };
     
-    // Transforms Balance History data from "Balance History (BTS)!A1:D".
-    // Expected columns: Date from A, Account from B, Current Balance from D.
+    // Transform Balance History data from "Balance History (BTS)!A1:D".
+    // Expected columns: Date (A), Account (B), Current Balance (D).
     const transformBalanceData = (data) => {
       if (!data || data.length === 0) return [];
       const header = ['Date', 'Account', 'Current Balance'];
@@ -144,8 +148,7 @@
       return transformed;
     };
     
-    // Groups balance data by account and returns an array of objects.
-    // For each account, finds the entry with the most recent date.
+    // Group balance data by account and return the latest entry.
     const getLatestBalances = (balanceData) => {
       if (!balanceData || balanceData.length < 2) return [];
       const latestBalances = {};
@@ -164,13 +167,13 @@
       return result;
     };
     
-    // Helper function to parse a balance or currency string.
+    // Helper to parse a balance or currency string.
     const parseBalance = (balanceStr) => {
       if (!balanceStr) return 0;
       return parseFloat(balanceStr.replace(/[^0-9.-]+/g, "")) || 0;
     };
     
-    // Helper function to format a number as currency.
+    // Helper to format a number as currency.
     const formatCurrency = (amount) => {
       return "$" + amount.toLocaleString("en-US", {
         minimumFractionDigits: 2,
@@ -178,18 +181,18 @@
       });
     };
     
-    // Load and render Barclay Accounts with target input and a custom progress bar.
-    const loadSoFiAccounts = async () => {
+    // Load and render Barclay accounts with target input and a custom progress bar.
+    const loadBarclayAccounts = async () => {
       const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
       const transformedBalances = transformBalanceData(balanceHistoryRaw);
       const latestBalances = getLatestBalances(transformedBalances);
       
-      // Filter for only the specified Barclay Accounts.
-      const sofiData = latestBalances.filter(item => sofiAccounts.includes(item.account));
+      // Filter for only the specified Barclay accounts.
+      const accountsData = latestBalances.filter(item => barclayAccounts.includes(item.account));
       
-      const table = document.getElementById('sofi-accounts-table');
+      const table = document.getElementById('barclay-accounts-table');
       
-      sofiData.forEach(item => {
+      accountsData.forEach(item => {
         // Create a sanitized string for element IDs.
         const sanitized = item.account.replace(/\s+/g, '').replace(/[()]/g, '');
         
@@ -207,16 +210,18 @@
         cellBalance.textContent = formatCurrency(currentBalance);
         row.appendChild(cellBalance);
         
-        // Target amount cell with input field.
+        // Target amount cell with input element and a display element.
         const cellTarget = document.createElement('td');
+        // The input element for editing.
         const inputTarget = document.createElement('input');
         inputTarget.type = 'text';
         inputTarget.placeholder = 'Enter target';
+        inputTarget.className = 'target-edit';
         inputTarget.id = `target-${sanitized}`;
         cellTarget.appendChild(inputTarget);
         row.appendChild(cellTarget);
         
-        // Progress cell with custom progress bar.
+        // Progress cell with a custom progress bar.
         const cellProgress = document.createElement('td');
         const progressContainer = document.createElement('div');
         progressContainer.className = 'progress-container';
@@ -234,60 +239,3 @@
         cellProgress.appendChild(progressContainer);
         row.appendChild(cellProgress);
         
-        // Append the row to the table.
-        table.appendChild(row);
-        
-        // Update the progress bar when the user inputs a target value.
-        inputTarget.addEventListener('input', () => {
-          // Remove the "filled" style in case the value is cleared.
-          if (inputTarget.value.trim() === "") {
-            cellTarget.classList.remove('filled');
-          }
-        });
-        
-        // On blur, format the target input as currency and update the cell appearance.
-        inputTarget.addEventListener('blur', () => {
-          const targetNum = parseFloat(inputTarget.value.replace(/[^0-9.]/g, "")) || 0;
-          if(targetNum > 0){
-            inputTarget.value = formatCurrency(targetNum);
-            cellTarget.classList.add('filled');
-          } else {
-            cellTarget.classList.remove('filled');
-          }
-          
-          const target = targetNum;
-          const current = currentBalance;
-          let progressPercent = 0;
-          if (target > 0) {
-            progressPercent = (current / target) * 100;
-            if (progressPercent > 100) {
-              progressPercent = 100;
-            }
-          }
-          progressFill.style.width = progressPercent + '%';
-          progressText.textContent = progressPercent.toFixed(1) + '%';
-          
-          // Update the progress bar color.
-          if (progressPercent >= 95) {
-            progressFill.style.backgroundColor = 'green';
-          } else if (progressPercent >= 50) {
-            progressFill.style.backgroundColor = 'yellow';
-          } else {
-            progressFill.style.backgroundColor = 'red';
-          }
-          
-          console.log(`Account: ${item.account} | Target: ${target} | Current: ${current} | Progress: ${progressPercent}%`);
-        });
-        
-        // On focus, remove formatting for easier editing.
-        inputTarget.addEventListener('focus', () => {
-          const rawVal = inputTarget.value.replace(/[^0-9.]/g, "");
-          inputTarget.value = rawVal;
-        });
-      });
-    };
-    
-    document.addEventListener('DOMContentLoaded', loadSoFiAccounts);
-  </script>
-</body>
-</html>
