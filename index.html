@@ -58,8 +58,8 @@
 <body>
   <!-- Navigation -->
   <nav>
-    <a href="index.html">Dashboard</a> |
-    <a href="account-balances.html">Account Balances</a>
+    <a href="./index.html">Dashboard</a> |
+    <a href="./account-balances.html">Account Balances</a>
   </nav>
 
   <h1>📊 Financial Dashboard</h1>
@@ -123,4 +123,56 @@
       }
       let html = '<tr>' + data[0].map(header => `<th>${header}</th>`).join('') + '</tr>';
       for (let i = 1; i < data.length; i++) {
-        html += '<tr
+        html += '<tr>' + data[i].map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+      }
+      table.innerHTML = html;
+    };
+
+    // Transforms Balance History data from "Balance History (BTS)!A1:D".
+    // Columns: Date from A, Account from B, Current Balance from D.
+    const transformBalanceData = (data) => {
+      if (!data || data.length === 0) return [];
+      const header = ['Date', 'Account', 'Current Balance'];
+      const transformed = [header];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        transformed.push([ row[0] || '', row[1] || '', row[3] || '' ]);
+      }
+      return transformed;
+    };
+
+    // Transforms transactions data from "Transactions (BTS)!B1:I".
+    // Columns: Date from B, Description from C, Outflow from F, Inflow from G,
+    // Auto Category from H, Account from I.
+    const transformTransactionsData = (data) => {
+      if (!data || data.length === 0) return [];
+      const header = ['Date', 'Description', 'Outflow', 'Inflow', 'Auto Category', 'Account'];
+      const transformed = [header];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        transformed.push([
+          row[0] || '', // Date (Column B)
+          row[1] || '', // Description (Column C)
+          row[4] || '', // Outflow (Column F)
+          row[5] || '', // Inflow (Column G)
+          row[6] || '', // Auto Category (Column H)
+          row[7] || ''  // Account (Column I)
+        ]);
+      }
+      return transformed;
+    };
+
+    // Render the balance line chart using the transformed balance data.
+    // Date is at index 0, current balance at index 2.
+    const renderBalanceChart = (balanceData) => {
+      const dates = balanceData.slice(1).map(row => row[0]);
+      const balances = balanceData.slice(1).map(row => parseFloat(row[2]) || 0);
+      new Chart(document.getElementById('balance-chart'), {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'Balance Over Time',
+            data: balances,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(
