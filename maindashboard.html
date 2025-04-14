@@ -10,8 +10,26 @@
       margin: 20px;
       background-color: #f5f5f5;
     }
+    /* Navigation styling */
+    nav {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      margin: 0 10px;
+      text-decoration: none;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
     h1, h2 {
       text-align: center;
+    }
+    .filter-container {
+      text-align: center;
+      margin-top: 20px;
     }
     table {
       width: 100%;
@@ -31,10 +49,6 @@
       width: 100%;
       margin: 40px 0;
     }
-    .filter-container {
-      text-align: center;
-      margin-top: 20px;
-    }
     select {
       padding: 5px;
       margin: 0 10px;
@@ -42,6 +56,12 @@
   </style>
 </head>
 <body>
+  <!-- Navigation -->
+  <nav>
+    <a href="index.html">Dashboard</a> |
+    <a href="account-balances.html">Account Balances</a>
+  </nav>
+
   <h1>📊 Financial Dashboard</h1>
 
   <div class="filter-container">
@@ -75,7 +95,7 @@
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
 
-    // Helper function to fetch data from Google Sheets with error logging.
+    // Helper function to fetch data from Google Sheets
     const fetchSheetData = async (range) => {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
       try {
@@ -94,7 +114,7 @@
       }
     };
 
-    // Render an HTML table given 2D array data.
+    // Renders a 2D array as an HTML table in the element with the given ID.
     const renderTable = (data, elementId) => {
       const table = document.getElementById(elementId);
       if (!data || data.length === 0) {
@@ -103,161 +123,4 @@
       }
       let html = '<tr>' + data[0].map(header => `<th>${header}</th>`).join('') + '</tr>';
       for (let i = 1; i < data.length; i++) {
-        html += '<tr>' + data[i].map(cell => `<td>${cell}</td>`).join('') + '</tr>';
-      }
-      table.innerHTML = html;
-    };
-
-    // Transform balance history data from "Balance History (BTS)!A1:D":
-    // Date from column A, Account from column B, Current Balance from column D.
-    const transformBalanceData = (data) => {
-      if (!data || data.length === 0) return [];
-      const header = ['Date', 'Account', 'Current Balance'];
-      const transformed = [header];
-      for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        transformed.push([ row[0] || '', row[1] || '', row[3] || '' ]);
-      }
-      return transformed;
-    };
-
-    // Transform transaction data from "Transactions (BTS)!B1:I":
-    // Date from column B, Description from column C, Outflow from F, Inflow from G,
-    // Auto Category from H, Account from I.
-    const transformTransactionsData = (data) => {
-      if (!data || data.length === 0) return [];
-      const header = ['Date', 'Description', 'Outflow', 'Inflow', 'Auto Category', 'Account'];
-      const transformed = [header];
-      for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        transformed.push([
-          row[0] || '', // Date (Column B)
-          row[1] || '', // Description (Column C)
-          row[4] || '', // Outflow (Column F)
-          row[5] || '', // Inflow (Column G)
-          row[6] || '', // Auto Category (Column H)
-          row[7] || ''  // Account (Column I)
-        ]);
-      }
-      return transformed;
-    };
-
-    // Render the balance line chart using the transformed balance data.
-    // Date is at index 0, current balance at index 2.
-    const renderBalanceChart = (balanceData) => {
-      const dates = balanceData.slice(1).map(row => row[0]);
-      const balances = balanceData.slice(1).map(row => parseFloat(row[2]) || 0);
-      new Chart(document.getElementById('balance-chart'), {
-        type: 'line',
-        data: {
-          labels: dates,
-          datasets: [{
-            label: 'Balance Over Time',
-            data: balances,
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: false
-            }
-          }
-        }
-      });
-    };
-
-    // Render a pie chart for spending by category.
-    // After transformation, Auto Category is at index 4 and Outflow is at index 2.
-    const renderCategoryPieChart = (transactions) => {
-      const categoryIndex = 4; // Auto Category (after transformation)
-      const outflowIndex = 2;  // Outflow (after transformation)
-      const dataMap = {};
-
-      for (let i = 1; i < transactions.length; i++) {
-        const category = transactions[i][categoryIndex] || 'Uncategorized';
-        const amount = parseFloat(transactions[i][outflowIndex]) || 0;
-        if (!dataMap[category]) dataMap[category] = 0;
-        dataMap[category] += amount;
-      }
-
-      const labels = Object.keys(dataMap);
-      const values = Object.values(dataMap);
-
-      new Chart(document.getElementById('category-pie-chart'), {
-        type: 'pie',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Spending by Category',
-            data: values,
-            backgroundColor: labels.map((_, i) => `hsl(${(i * 35) % 360}, 70%, 60%)`)
-          }]
-        },
-        options: {
-          responsive: true,
-        }
-      });
-    };
-
-    // Render the goals table using the goals data and the transformed balance data.
-    const renderGoalsTable = (goals, balances) => {
-      const table = document.getElementById('goals-table');
-      let html = '';
-      for (let i = 1; i < goals.length; i++) {
-        const [account, target] = goals[i];
-        const targetAmount = parseFloat(target);
-        // Find the latest balance for the given account.
-        const latestBalance = balances.slice(1).reverse().find(row => row[1] === account);
-        const balanceAmount = latestBalance ? parseFloat(latestBalance[2]) : 0;
-        const progress = targetAmount ? ((balanceAmount / targetAmount) * 100).toFixed(1) : '0.0';
-        html += `<tr><td>${account}</td><td>${target}</td><td>${balanceAmount}</td><td>${progress}%</td></tr>`;
-      }
-      table.innerHTML += html;
-    };
-
-    // Main function to load the dashboard data and render charts/tables.
-    const loadDashboard = async () => {
-      // Fetch and transform transactions data.
-      const transactionsRaw = await fetchSheetData('Transactions (BTS)!B1:I');
-      const transactions = transformTransactionsData(transactionsRaw);
-      renderTable(transactions, 'transactions-table');
-      renderCategoryPieChart(transactions);
-
-      // Populate the filter dropdown using the "Account" (last column, index 5) from transactions.
-      const accountFilter = document.getElementById('account-filter');
-      const accounts = [...new Set(transactions.slice(1).map(row => row[5]))];
-      accounts.forEach(acc => {
-        const option = document.createElement('option');
-        option.value = acc;
-        option.textContent = acc;
-        accountFilter.appendChild(option);
-      });
-      // Filter transactions when the account filter changes.
-      accountFilter.addEventListener('change', () => {
-        const filtered = accountFilter.value === 'All'
-          ? transactions
-          : [transactions[0], ...transactions.slice(1).filter(row => row[5] === accountFilter.value)];
-        renderTable(filtered, 'transactions-table');
-        renderCategoryPieChart(filtered);
-      });
-
-      // Fetch, transform, and render balance history.
-      const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
-      const balanceHistory = transformBalanceData(balanceHistoryRaw);
-      renderTable(balanceHistory, 'balance-table');
-      renderBalanceChart(balanceHistory);
-
-      // Fetch and render goals.
-      const goals = await fetchSheetData('Goals!A1:B');
-      renderGoalsTable(goals, balanceHistory);
-    };
-
-    loadDashboard();
-  </script>
-</body>
-</html>
+        html += '<tr
