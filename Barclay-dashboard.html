@@ -99,7 +99,7 @@
       "SoFi SoFi Checking (9237)"
     ];
     
-    // Fetch data from Google Sheets given a range.
+    // Helper function to fetch data from Google Sheets given a range.
     const fetchSheetData = async (range) => {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
       try {
@@ -141,96 +141,4 @@
         if (!dateStr || !account) continue;
         const date = new Date(dateStr);
         if (!latestBalances[account] || date > latestBalances[account].date) {
-          latestBalances[account] = { date, balance };
-        }
-      }
-      const result = [];
-      for (const account in latestBalances) {
-        result.push({ account, balance: latestBalances[account].balance });
-      }
-      return result;
-    };
-    
-    // Load and render SoFi accounts with input for target and a progress bar.
-    const loadSoFiAccounts = async () => {
-      const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
-      const transformedBalances = transformBalanceData(balanceHistoryRaw);
-      const latestBalances = getLatestBalances(transformedBalances);
-    
-      // Filter for only the specified SoFi accounts.
-      const sofiData = latestBalances.filter(item => sofiAccounts.includes(item.account));
-    
-      const table = document.getElementById('sofi-accounts-table');
-    
-      sofiData.forEach(item => {
-        // Create a sanitized string for element IDs.
-        const sanitized = item.account.replace(/\s+/g, '').replace(/[()]/g, '');
-    
-        // Create table row.
-        const row = document.createElement('tr');
-    
-        // Account name cell.
-        const cellAccount = document.createElement('td');
-        cellAccount.textContent = item.account;
-        row.appendChild(cellAccount);
-    
-        // Current balance cell.
-        const cellBalance = document.createElement('td');
-        cellBalance.textContent = item.balance;
-        row.appendChild(cellBalance);
-    
-        // Target amount cell with input field.
-        const cellTarget = document.createElement('td');
-        const inputTarget = document.createElement('input');
-        inputTarget.type = 'number';
-        inputTarget.placeholder = 'Enter target';
-        inputTarget.id = `target-${sanitized}`;
-        cellTarget.appendChild(inputTarget);
-        row.appendChild(cellTarget);
-    
-        // Progress cell with progress bar and text overlay.
-        const cellProgress = document.createElement('td');
-        const progressWrapper = document.createElement('div');
-        progressWrapper.className = 'progress-wrapper';
-    
-        const progressBar = document.createElement('progress');
-        progressBar.id = `progress-${sanitized}`;
-        progressBar.value = 0;
-        progressBar.max = 100;
-    
-        // Add a span element to show the text percentage.
-        const progressText = document.createElement('span');
-        progressText.className = 'progress-text';
-        progressText.textContent = '0%';
-    
-        progressWrapper.appendChild(progressBar);
-        progressWrapper.appendChild(progressText);
-        cellProgress.appendChild(progressWrapper);
-        row.appendChild(cellProgress);
-    
-        // Append the row to the table.
-        table.appendChild(row);
-    
-        // Update the progress bar when the user inputs a target amount.
-        inputTarget.addEventListener('input', () => {
-          const target = parseFloat(inputTarget.value);
-          const current = parseFloat(item.balance) || 0;
-          let progressPercent = 0;
-          if (target > 0) {
-            progressPercent = (current / target) * 100;
-            if (progressPercent > 100) {
-              progressPercent = 100;
-            }
-          }
-          // Debug output in the console.
-          console.log(`Account: ${item.account} | Target: ${target} | Current: ${current} | Progress: ${progressPercent}%`);
-          progressBar.value = progressPercent;
-          progressText.textContent = `${progressPercent.toFixed(1)}%`;
-        });
-      });
-    };
-    
-    document.addEventListener('DOMContentLoaded', loadSoFiAccounts);
-  </script>
-</body>
-</html>
+          latestBalances[account
