@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Balances</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+    }
+    table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Account Balances</h1>
+  <table id="account-balances-table"></table>
+
+  <script>
+    // Replace these with your actual API key and sheet ID.
+    const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
+    const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
+
+    // Fetches data from Google Sheets given a range.
+    const fetchSheetData = async (range) => {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        if (!data.values) {
+          console.error('No data returned for range:', range, data);
+        }
+        return data.values;
+      } catch (error) {
+        console.error('Error fetching sheet data:', error);
+        return null;
+      }
+    };
+
+    // Renders a 2D array as an HTML table in the element with the given ID.
+    const renderTable = (data, elementId) => {
+      const table = document.getElementById(elementId);
+      if (!data || data.length === 0) {
+        table.innerHTML = '<tr><td>No data available</td></tr>';
+        return;
+      }
+      let html = '<tr>' + data[0].map(header => `<th>${header}</th>`).join('') + '</tr>';
+      for (let i = 1; i < data.length; i++) {
+        html += '<tr>' + data[i].map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+      }
+      table.innerHTML = html;
+    };
+
+    // Transforms Balance History data from "Balance History (BTS)!A1:D".
+    // Columns: Date from A, Account from B, Current Balance from D.
+    const transformBalanceData = (data) => {
+      if (!data || data.length === 0) return [];
+      // Use a custom header for clarity.
+      const header = ['Date', 'Account', 'Current Balance'];
+      const transformed = [header];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        transformed.push([ row[0] || '', row[1] || '', row[3] || '' ]);
+      }
+      return transformed;
+    };
+
+    // Groups balance data by account and returns an array of rows.
+    // For each account, it finds the entry with the most recent date.
+    const getLatestBalances = (balanceData) => {
+      if (!balanceData || balanceData.length < 2) return [];
+      const latestBalances = {};
+      // Loop through each row (skipping header)
+      for (let i = 1; i < balanceData.length; i++) {
+        const [dateStr, account, balance] = balanceData[i];
+        if (!dateStr || !account) continue;
+        const currentDate = new Date(dateStr);
+        // If this account hasn't been added or if this date is more recent than the stored date, update it.
+        if (!latestBalances[account] || currentDate > latestBalances[account].date) {
+          latestBalances[account] = { date: currentDate, balance: balance };
+        }
+      }
+      // Prepare the result data starting with the header.
+      const result = [['Account', 'Current Balance']];
+      for (const account in latestBalances) {
+        result.push([account, latestBalances[account].balance]);
+      }
+      return result;
+    };
+
+    // Main function to load and display the account balances.
+    const loadAccountBalances = async () => {
+      // Fetch balance history data.
+      const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
+      const transformedBalances = transformBalanceData(balanceHistoryRaw);
+      const latestBalances = getLatestBalances(transformedBalances);
+      // Render the results to the table.
+      renderTable(latestBalances, 'account-balances-table');
+    };
+
+    // Load data when the page loads.
+    loadAccountBalances();
+  </script>
+</body>
+</html>
