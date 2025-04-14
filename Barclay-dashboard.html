@@ -41,7 +41,7 @@
       background-color: #4CAF50;
       color: white;
     }
-    /* Style the target input and use type text so we can format its value */
+    /* Style the target input as text for formatting purposes */
     input[type="text"] {
       width: 100px;
       padding: 4px;
@@ -59,7 +59,7 @@
       height: 100%;
       width: 0;
       background: red;
-      transition: width 0.3s ease;
+      transition: width 0.3s ease, background-color 0.3s ease;
     }
     .progress-text {
       position: absolute;
@@ -70,6 +70,13 @@
       line-height: 20px;
       font-size: 0.9em;
       color: #000;
+      pointer-events: none;
+    }
+    /* Styling applied to the target cell when a target value is entered */
+    td.filled {
+      background-color: #e0f7e9;   /* light green background */
+      border: 2px solid green;     /* thicker green border */
+      font-weight: bold;
     }
   </style>
 </head>
@@ -209,7 +216,7 @@
         cellTarget.appendChild(inputTarget);
         row.appendChild(cellTarget);
         
-        // Progress cell with a custom progress bar.
+        // Progress cell with custom progress bar.
         const cellProgress = document.createElement('td');
         const progressContainer = document.createElement('div');
         progressContainer.className = 'progress-container';
@@ -230,10 +237,25 @@
         // Append the row to the table.
         table.appendChild(row);
         
-        // When the user inputs a target value, update the progress bar.
+        // Update the progress bar when the user inputs a target value.
         inputTarget.addEventListener('input', () => {
-          // Parse the target value, ignoring non-numeric characters.
-          const target = parseFloat(inputTarget.value.replace(/[^0-9.]/g, "")) || 0;
+          // Remove the "filled" style in case the value is cleared.
+          if (inputTarget.value.trim() === "") {
+            cellTarget.classList.remove('filled');
+          }
+        });
+        
+        // On blur, format the target input as currency and update the cell appearance.
+        inputTarget.addEventListener('blur', () => {
+          const targetNum = parseFloat(inputTarget.value.replace(/[^0-9.]/g, "")) || 0;
+          if(targetNum > 0){
+            inputTarget.value = formatCurrency(targetNum);
+            cellTarget.classList.add('filled');
+          } else {
+            cellTarget.classList.remove('filled');
+          }
+          
+          const target = targetNum;
           const current = currentBalance;
           let progressPercent = 0;
           if (target > 0) {
@@ -242,11 +264,10 @@
               progressPercent = 100;
             }
           }
-          // Update the fill width and overlay text.
           progressFill.style.width = progressPercent + '%';
           progressText.textContent = progressPercent.toFixed(1) + '%';
           
-          // Update color based on progress.
+          // Update the progress bar color.
           if (progressPercent >= 95) {
             progressFill.style.backgroundColor = 'green';
           } else if (progressPercent >= 50) {
@@ -254,13 +275,10 @@
           } else {
             progressFill.style.backgroundColor = 'red';
           }
+          
+          console.log(`Account: ${item.account} | Target: ${target} | Current: ${current} | Progress: ${progressPercent}%`);
         });
         
-        // On blur, format the target input as currency.
-        inputTarget.addEventListener('blur', () => {
-          const targetNum = parseFloat(inputTarget.value.replace(/[^0-9.]/g, "")) || 0;
-          inputTarget.value = formatCurrency(targetNum);
-        });
         // On focus, remove formatting for easier editing.
         inputTarget.addEventListener('focus', () => {
           const rawVal = inputTarget.value.replace(/[^0-9.]/g, "");
