@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SoFi Accounts</title>
+  <title>Barclay Accounts</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -85,11 +85,11 @@
   <nav>
     <a href="./index.html">Dashboard</a> |
     <a href="./account-balances.html">Account Balances</a> |
-    <a href="./sofi-accounts.html">SoFi Accounts</a>
+    <a href="./sofi-accounts.html">Barclay Accounts</a>
   </nav>
 
-  <h1>SoFi Accounts</h1>
-  <!-- Table header for SoFi accounts -->
+  <h1>Barclay Accounts</h1>
+  <!-- Table header for Barclay Accounts -->
   <table id="sofi-accounts-table">
     <tr>
       <th>Account</th>
@@ -178,13 +178,13 @@
       });
     };
     
-    // Load and render SoFi accounts with target input and a custom progress bar.
+    // Load and render Barclay Accounts with target input and a custom progress bar.
     const loadSoFiAccounts = async () => {
       const balanceHistoryRaw = await fetchSheetData('Balance History (BTS)!A1:D');
       const transformedBalances = transformBalanceData(balanceHistoryRaw);
       const latestBalances = getLatestBalances(transformedBalances);
       
-      // Filter for only the specified SoFi accounts.
+      // Filter for only the specified Barclay Accounts.
       const sofiData = latestBalances.filter(item => sofiAccounts.includes(item.account));
       
       const table = document.getElementById('sofi-accounts-table');
