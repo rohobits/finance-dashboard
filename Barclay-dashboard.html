@@ -239,3 +239,85 @@
         cellProgress.appendChild(progressContainer);
         row.appendChild(cellProgress);
         
+        // Append the row to the table.
+        table.appendChild(row);
+        
+        // --- Input handling to allow Enter key to trigger blur ---
+        inputTarget.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            inputTarget.blur();
+          }
+        });
+        
+        // Function that finalizes the input (formats and hides the input).
+        const finalizeInput = () => {
+          const targetRaw = inputTarget.value;
+          const targetNum = parseFloat(targetRaw.replace(/[^0-9.]/g, "")) || 0;
+          if (targetNum > 0) {
+            inputTarget.value = formatCurrency(targetNum);
+            // Hide the input and replace with a static display element.
+            inputTarget.style.display = 'none';
+            // Create the display span if it doesn't exist.
+            let displaySpan = cellTarget.querySelector('.target-display');
+            if (!displaySpan) {
+              displaySpan = document.createElement('span');
+              displaySpan.className = 'target-display';
+              cellTarget.appendChild(displaySpan);
+              // Allow clicking the display to re-enter edit mode.
+              displaySpan.addEventListener('click', () => {
+                displaySpan.remove();
+                inputTarget.style.display = '';
+                inputTarget.focus();
+              });
+            }
+            displaySpan.textContent = formatCurrency(targetNum);
+          } else {
+            // If target is zero or empty, ensure the input remains visible.
+            inputTarget.style.display = '';
+            const displaySpan = cellTarget.querySelector('.target-display');
+            if (displaySpan) {
+              displaySpan.remove();
+            }
+          }
+          
+          // Update progress bar.
+          const target = targetNum;
+          const current = currentBalance;
+          let progressPercent = 0;
+          if (target > 0) {
+            progressPercent = (current / target) * 100;
+            if (progressPercent > 100) progressPercent = 100;
+          }
+          progressFill.style.width = progressPercent + '%';
+          progressText.textContent = progressPercent.toFixed(1) + '%';
+          // Update color based on thresholds.
+          if (progressPercent >= 95) {
+            progressFill.style.backgroundColor = 'green';
+          } else if (progressPercent >= 50) {
+            progressFill.style.backgroundColor = 'yellow';
+          } else {
+            progressFill.style.backgroundColor = 'red';
+          }
+          
+          console.log(`Account: ${item.account} | Target: ${target} | Current: ${current} | Progress: ${progressPercent}%`);
+        };
+        
+        // On blur, finalize the input.
+        inputTarget.addEventListener('blur', finalizeInput);
+        
+        // Optionally, update progress dynamically on input (if desired).
+        inputTarget.addEventListener('input', () => {
+          // If the input is cleared, remove any static display.
+          if (inputTarget.value.trim() === "") {
+            const displaySpan = cellTarget.querySelector('.target-display');
+            if (displaySpan) displaySpan.remove();
+          }
+        });
+      });
+    };
+    
+    document.addEventListener('DOMContentLoaded', loadBarclayAccounts);
+  </script>
+</body>
+</html>
