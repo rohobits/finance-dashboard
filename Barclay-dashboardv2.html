@@ -2,53 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Using a Google Font for modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Combined Dashboard</title>
   <style>
+    /* Global Styles */
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: #f5f5f5;
-    }
-    /* Navigation styling */
-    nav {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    nav a {
-      margin: 0 10px;
-      text-decoration: none;
-      color: #4CAF50;
-      font-weight: bold;
-    }
-    nav a:hover {
-      text-decoration: underline;
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #fafafa;
+      color: #333;
+      line-height: 1.6;
     }
     h1, h2 {
+      color: #222;
+      margin-bottom: 10px;
+    }
+    a {
+      color: #0077cc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Navigation Bar */
+    nav {
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 10px 0;
+      margin-bottom: 30px;
       text-align: center;
     }
-    /* Shared table styling */
-    table {
-      width: 80%;
+    nav a {
+      margin: 0 12px;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    /* Section Headings */
+    section {
       margin: 20px auto;
+      width: 90%;
+      max-width: 1000px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    section h2 {
+      border-bottom: 2px solid #eee;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+
+    /* Table Styles */
+    table {
+      width: 100%;
       border-collapse: collapse;
+      margin-bottom: 20px;
     }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
+    table th, table td {
+      padding: 12px 8px;
+      border: 1px solid #e0e0e0;
       text-align: center;
+      font-size: 0.95rem;
     }
-    th {
-      background-color: #4CAF50;
-      color: white;
+    table th {
+      background-color: #0077cc;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
     }
-    /* Progress bar styles (for Barclay Accounts) */
+    table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    /* Progress Bar Styles */
     .progress-container {
       position: relative;
       width: 100%;
       height: 20px;
-      background: #ddd;
-      border: 1px solid #ccc;
+      background: #eaeaea;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
     }
     .progress-fill {
       height: 100%;
@@ -62,56 +106,64 @@
       top: 0;
       left: 0;
       line-height: 20px;
-      font-size: 0.9em;
+      font-size: 0.85rem;
+      color: #fff;
+      font-weight: 500;
       pointer-events: none;
     }
-    /* Container for combining target info and progress bar */
     .target-progress-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
     .target-amount {
-      font-weight: bold;
-      font-size: 0.95em;
+      font-size: 0.9rem;
+      color: #666;
     }
-    /* Simple styling for property info box */
+
+    /* Utility Data and Property Info Styles */
+    #utility-table, #property-info {
+      margin-top: 20px;
+    }
     #property-info {
-      width: 80%;
-      margin: 40px auto;
-      border: 1px solid #ccc;
-      padding: 10px;
-      background: #fff;
-    }
-    #property-info h2 {
-      text-align: center;
-      margin-bottom: 10px;
+      padding: 20px;
     }
     .info-row {
       display: flex;
       justify-content: space-between;
-      margin: 8px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 1rem;
     }
     .info-label {
-      font-weight: bold;
+      font-weight: 500;
+    }
+    .info-value {
+      font-weight: 700;
+    }
+    tfoot td {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 10px;
+      background: #f7f7f7;
     }
   </style>
 </head>
 <body>
-  <!-- Navigation with internal links for each section -->
+  <!-- Navigation with internal links -->
   <nav>
-    <a href="./index.html">Dashboard</a> |
-    <a href="./account-balances.html">Account Balances</a> |
-    <a href="./barclay-accounts.html">Barclay Accounts</a> |
-    <a href="#barclay-accounts">Barclay Accounts Data</a> |
-    <a href="#utility-data">Utility Data</a> |
+    <a href="./index.html">Dashboard</a>
+    <a href="./account-balances.html">Account Balances</a>
+    <a href="./barclay-accounts.html">Barclay Accounts</a>
+    <a href="#barclay-accounts">Barclay Accounts Data</a>
+    <a href="#utility-data">Utility Data</a>
     <a href="#property-info">Property Info</a>
   </nav>
 
-  <h1>Combined Dashboard</h1>
+  <h1 style="text-align:center; margin-top:20px;">Combined Dashboard</h1>
 
-  <!-- Section for Barclay Accounts -->
+  <!-- Barclay Accounts Section -->
   <section id="barclay-accounts">
     <h2>Barclay Accounts</h2>
     <table id="barclay-accounts-table">
@@ -123,7 +175,7 @@
     </table>
   </section>
 
-  <!-- Section for Utility Data -->
+  <!-- Utility Data Section -->
   <section id="utility-data">
     <h2>Utility Data</h2>
     <table id="utility-table">
@@ -134,7 +186,8 @@
           <th>Due Date</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+      </tbody>
       <tfoot>
         <tr>
           <td colspan="1">Total</td>
@@ -145,33 +198,33 @@
     </table>
   </section>
 
-  <!-- Section for Property Info (the 4 new features) -->
+  <!-- Property Info Section -->
   <section id="property-info">
     <h2>Property Info</h2>
     <div class="info-row">
-      <div class="info-label">Zestimate:</div>
-      <div id="zestimate-value"></div>
+      <div class="info-label">Current Zestimate:</div>
+      <div id="zestimate-value" class="info-value"></div>
     </div>
     <div class="info-row">
       <div class="info-label">Mortgage Balance:</div>
-      <div id="mortgage-balance"></div>
+      <div id="mortgage-balance" class="info-value"></div>
     </div>
     <div class="info-row">
-      <div class="info-label">Equity:</div>
-      <div id="equity-value"></div>
+      <div class="info-label">Equity (Zestimate - Mortgage):</div>
+      <div id="equity-value" class="info-value"></div>
     </div>
     <div class="info-row">
-      <div class="info-label">Estimated Selling Proceeds:</div>
-      <div id="selling-value"></div>
+      <div class="info-label">Estimated Selling Proceeds (Equity * 0.91):</div>
+      <div id="selling-value" class="info-value"></div>
     </div>
   </section>
 
   <script>
-    // Use your provided API key and sheet ID:
+    // Your API key and Sheet ID:
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
 
-    // Predefined list of accounts (must exactly match what's in your sheet)
+    // List of Barclay account names (must match exactly what's in your sheet)
     const barclayAccounts = [
       "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
@@ -180,7 +233,7 @@
       "SoFi SoFi Checking (9237)"
     ];
 
-    // Mortgage account name (as found in Balance History column B)
+    // Mortgage account name (as found in Balance History, column B)
     const mortgageAccountName = "U.S. Bank 1160 Barclay - 8584 (8584)";
 
     // ---------- Shared Utility Functions ----------
@@ -191,7 +244,7 @@
         const response = await fetch(url);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
-        console.log("Fetched data for", range, ":", data);
+        console.log(`Fetched data for ${range}:`, data);
         return data.values || [];
       } catch (error) {
         console.error('Error fetching sheet data:', error);
@@ -211,11 +264,10 @@
       });
     }
 
-    // ---------- Barclay Accounts Data ----------
+    // ---------- Barclay Accounts Data Functions ----------
     function transformBalanceData(data) {
       if (data.length === 0) return [];
       const results = [];
-      // Skip header row.
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
         results.push({
@@ -241,7 +293,6 @@
     function transformGoalData(data) {
       if (data.length === 0) return {};
       const map = {};
-      // Skip header row.
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
         const account = row[0] || '';
@@ -252,16 +303,12 @@
     }
 
     async function loadBarclayAccounts() {
-      // Fetch current balance data from "Balance History (BTS)!A1:D"
       const balanceRaw = await fetchSheetData('Balance History (BTS)!A1:D');
       const balanceData = transformBalanceData(balanceRaw);
       const latestMap = getLatestBalances(balanceData);
-
-      // Fetch target amounts from "1160 Barclay!D1:F"
       const goalsRaw = await fetchSheetData('1160 Barclay!D1:F');
       const goalMap = transformGoalData(goalsRaw);
 
-      // Build an array of account objects.
       const accountRows = barclayAccounts.map(accountName => {
         const currentInfo = latestMap[accountName] || { date: new Date(), balance: "0" };
         const currentBalanceNum = parseBalance(currentInfo.balance);
@@ -275,7 +322,6 @@
         return { accountName, currentBalanceNum, targetNum, progressPct };
       });
 
-      // Sort accounts (by progress descending; if tie at 100% sort by current balance descending)
       accountRows.sort((a, b) => {
         if (b.progressPct !== a.progressPct) {
           return b.progressPct - a.progressPct;
@@ -284,7 +330,6 @@
         }
       });
 
-      // Build the table.
       const table = document.getElementById('barclay-accounts-table');
       accountRows.forEach(rowData => {
         const { accountName, currentBalanceNum, targetNum, progressPct } = rowData;
@@ -300,7 +345,7 @@
         cellCurrent.textContent = formatCurrency(currentBalanceNum);
         row.appendChild(cellCurrent);
 
-        // Combined Progress cell (includes target text on top and progress bar below).
+        // Combined Progress cell.
         const cellProgress = document.createElement('td');
         const container = document.createElement('div');
         container.className = 'target-progress-container';
@@ -311,7 +356,6 @@
 
         const progressContainer = document.createElement('div');
         progressContainer.className = 'progress-container';
-
         const progressFill = document.createElement('div');
         progressFill.className = 'progress-fill';
         progressFill.style.width = progressPct + '%';
@@ -322,7 +366,6 @@
         } else {
           progressFill.style.backgroundColor = 'red';
         }
-
         const progressText = document.createElement('span');
         progressText.className = 'progress-text';
         progressText.textContent = progressPct.toFixed(1) + '%';
@@ -391,13 +434,12 @@
 
     // ---------- Property Info Functions ----------
     async function loadPropertyInfo() {
-      // Zestimate from '1160 Barclay!I2'
+      // Current Zestimate from '1160 Barclay!I2'
       const zestimateArr = await fetchSheetData("1160 Barclay!I2:I2");
       let zestimateNum = 0;
       if (zestimateArr.length > 0 && zestimateArr[0].length > 0) {
         zestimateNum = parseBalance(zestimateArr[0][0]);
       }
-
       // Mortgage Balance: from "Balance History (BTS)!A1:D" for mortgageAccountName
       const balanceRaw = await fetchSheetData("Balance History (BTS)!A1:D");
       const balanceData = transformBalanceData(balanceRaw);
@@ -406,10 +448,9 @@
       if (latestMap[mortgageAccountName]) {
         mortgageBalanceNum = parseBalance(latestMap[mortgageAccountName].balance);
       }
-
-      // Current Equity
+      // Equity = Zestimate - Mortgage
       const equityNum = zestimateNum - mortgageBalanceNum;
-      // Estimated Selling Proceeds
+      // Estimated Selling Proceeds = Equity * 0.91
       const sellingNum = equityNum * 0.91;
 
       document.getElementById("zestimate-value").textContent = formatCurrency(zestimateNum);
