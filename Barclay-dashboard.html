@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Barclay Accounts</title>
   <style>
     body {
@@ -10,7 +10,6 @@
       margin: 20px;
       background-color: #f5f5f5;
     }
-    /* Navigation styling */
     nav {
       text-align: center;
       margin-bottom: 20px;
@@ -41,27 +40,6 @@
       background-color: #4CAF50;
       color: white;
     }
-    /* Style for target input when editing */
-    input.target-edit {
-      width: 100px;
-      padding: 4px;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      background: #fff;
-    }
-    /* Style for target display after entry: hides the white cell look */
-    .target-display {
-      display: inline-block;
-      width: 100px;
-      padding: 4px;
-      font-size: 1em;
-      font-weight: bold;
-      background: transparent;
-      border: none;
-      color: #000;
-      cursor: pointer;
-    }
-    /* Custom progress bar styles */
     .progress-container {
       position: relative;
       width: 100%;
@@ -95,7 +73,7 @@
   </nav>
 
   <h1>Barclay Accounts</h1>
-  <!-- Table header for Barclay accounts -->
+
   <table id="barclay-accounts-table">
     <tr>
       <th>Account</th>
@@ -106,11 +84,11 @@
   </table>
 
   <script>
-    // Replace these with your actual API key and sheet ID.
+    // Using your API key and sheet ID:
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
 
-    // List of Barclay account names to show (exactly as in your sheet)
+    // List of Barclay account names (must exactly match the sheet).
     const barclayAccounts = [
       "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
@@ -119,7 +97,7 @@
       "SoFi SoFi Checking (9237)"
     ];
 
-    // Fetch data from Google Sheets with a cache buster.
+    // Fetch data from Google Sheets with a timestamp to avoid caching.
     const fetchSheetData = async (range) => {
       const timestamp = new Date().getTime();
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}&t=${timestamp}`;
@@ -127,7 +105,7 @@
         const response = await fetch(url);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
-        console.log("Fetched raw data:", data);
+        console.log("Fetched raw data from", range, ":", data);
         return data.values || [];
       } catch (error) {
         console.error('Error fetching sheet data:', error);
@@ -136,22 +114,22 @@
     };
 
     // Transform Balance History data from "Balance History (BTS)!A1:D".
-    // Expected: Date (A), Account (B), Current Balance (D)
+    // Expected columns: A: Date, B: Account Name, D: Current Balance.
     const transformBalanceData = (data) => {
       if (data.length === 0) return [];
-      const transformed = [];
+      const results = [];
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
-        transformed.push({
+        results.push({
           dateStr: row[0] || '',
           accountName: row[1] || '',
-          currentBalance: row[3] || ''
+          currentBalance: row[3] || '0'
         });
       }
-      return transformed;
+      return results;
     };
 
-    // Get the latest balance data for each account.
+    // Create a map of the most recent balance for each account.
     const getLatestBalances = (transformedData) => {
       const map = {};
       transformedData.forEach(({ dateStr, accountName, currentBalance }) => {
@@ -160,6 +138,21 @@
           map[accountName] = { date: thisDate, balance: currentBalance };
         }
       });
+      return map;
+    };
+
+    // Transform target data from "1160 Barclay!D1:F".
+    // Expected: Column D: Account Name, Column F: Target Amount.
+    const transformGoalData = (data) => {
+      if (data.length === 0) return {};
+      const map = {};
+      // Assume row 0 is header; start at index 1.
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const account = row[0] || '';
+        const targetStr = row[2] || '0';
+        map[account] = targetStr;
+      }
       return map;
     };
 
@@ -177,22 +170,30 @@
       });
     };
 
-    // Load and render Barclay accounts.
+    // Main logic to build the table.
     const loadBarclayAccounts = async () => {
-      const rawData = await fetchSheetData('Balance History (BTS)!A1:D');
-      const transformedData = transformBalanceData(rawData);
-      const latestMap = getLatestBalances(transformedData);
-      // latestMap now contains { "Account Name": { date, balance }, ... }
+      // A) Fetch current balance data.
+      const balanceRaw = await fetchSheetData('Balance History (BTS)!A1:D');
+      const balanceTransformed = transformBalanceData(balanceRaw);
+      const latestMap = getLatestBalances(balanceTransformed);
 
+      // B) Fetch target amounts from "1160 Barclay!D1:F"
+      const goalsRaw = await fetchSheetData('1160 Barclay!D1:F');
+      const goalMap = transformGoalData(goalsRaw);
+
+      // C) Build table rows.
       const table = document.getElementById('barclay-accounts-table');
 
-      // Always create a row for each account listed in barclayAccounts.
       barclayAccounts.forEach((accountName) => {
-        const accountData = latestMap[accountName] || { date: new Date(), balance: "0" };
-        const sanitized = accountName.replace(/\s+/g, '').replace(/[()]/g, '');
-        const currentBalNum = parseBalance(accountData.balance);
+        // Use current balance from latestMap (or default to 0).
+        const currentInfo = latestMap[accountName] || { date: new Date(), balance: "0" };
+        const currentBalanceNum = parseBalance(currentInfo.balance);
 
-        // Create table row.
+        // Get the target from goalMap (or default to 0).
+        const targetStr = goalMap[accountName] || "0";
+        const targetNum = parseBalance(targetStr);
+
+        // Create a row.
         const row = document.createElement('tr');
 
         // Account cell.
@@ -201,106 +202,50 @@
         row.appendChild(cellAccount);
 
         // Current Balance cell.
-        const cellBalance = document.createElement('td');
-        cellBalance.textContent = formatCurrency(currentBalNum);
-        row.appendChild(cellBalance);
+        const cellCurrent = document.createElement('td');
+        cellCurrent.textContent = formatCurrency(currentBalanceNum);
+        row.appendChild(cellCurrent);
 
-        // Target Amount cell with input element.
+        // Target Amount cell.
         const cellTarget = document.createElement('td');
-        const inputTarget = document.createElement('input');
-        inputTarget.type = 'text';
-        inputTarget.className = 'target-edit';
-        inputTarget.placeholder = 'Enter target';
-        inputTarget.id = `target-${sanitized}`;
-        cellTarget.appendChild(inputTarget);
+        cellTarget.textContent = formatCurrency(targetNum);
         row.appendChild(cellTarget);
 
-        // Progress cell with custom progress bar.
+        // Progress cell.
         const cellProgress = document.createElement('td');
         const progressContainer = document.createElement('div');
         progressContainer.className = 'progress-container';
+
         const progressFill = document.createElement('div');
         progressFill.className = 'progress-fill';
-        progressFill.style.width = '0%';
+
+        let progressPct = 0;
+        if (targetNum > 0) {
+          progressPct = (currentBalanceNum / targetNum) * 100;
+          if (progressPct > 100) progressPct = 100;
+        }
+        progressFill.style.width = progressPct + '%';
+
+        // Set the fill color based on progress thresholds.
+        if (progressPct >= 95) {
+          progressFill.style.backgroundColor = 'green';
+        } else if (progressPct >= 50) {
+          progressFill.style.backgroundColor = 'yellow';
+        } else {
+          progressFill.style.backgroundColor = 'red';
+        }
+
         const progressText = document.createElement('span');
         progressText.className = 'progress-text';
-        progressText.textContent = '0%';
+        progressText.textContent = progressPct.toFixed(1) + '%';
+
         progressContainer.appendChild(progressFill);
         progressContainer.appendChild(progressText);
         cellProgress.appendChild(progressContainer);
         row.appendChild(cellProgress);
 
+        // Append the row to the table.
         table.appendChild(row);
-
-        // Restore saved target value, if any.
-        const savedVal = localStorage.getItem("target-" + sanitized);
-        if (savedVal) {
-          inputTarget.value = savedVal;
-          finalizeInput();
-        }
-
-        // Allow pressing Enter to trigger blur.
-        inputTarget.addEventListener('keydown', (evt) => {
-          if (evt.key === 'Enter') {
-            evt.preventDefault();
-            inputTarget.blur();
-          }
-        });
-
-        // Function to finalize input (save, format, hide input, update progress).
-        function finalizeInput() {
-          const rawVal = inputTarget.value;
-          const targetNum = parseFloat(rawVal.replace(/[^0-9.]/g, "")) || 0;
-          localStorage.setItem("target-" + sanitized, rawVal); // save raw value
-
-          if (targetNum > 0) {
-            inputTarget.value = formatCurrency(targetNum);
-            // Hide the input and create a static display.
-            inputTarget.style.display = 'none';
-            let displaySpan = cellTarget.querySelector('.target-display');
-            if (!displaySpan) {
-              displaySpan = document.createElement('span');
-              displaySpan.className = 'target-display';
-              cellTarget.appendChild(displaySpan);
-              displaySpan.addEventListener('click', () => {
-                displaySpan.remove();
-                inputTarget.style.display = '';
-                inputTarget.focus();
-              });
-            }
-            displaySpan.textContent = formatCurrency(targetNum);
-          } else {
-            inputTarget.style.display = '';
-            const displaySpan = cellTarget.querySelector('.target-display');
-            if (displaySpan) displaySpan.remove();
-          }
-
-          // Update the progress bar.
-          let progressPercent = 0;
-          if (targetNum > 0) {
-            progressPercent = (currentBalNum / targetNum) * 100;
-            if (progressPercent > 100) progressPercent = 100;
-          }
-          progressFill.style.width = progressPercent + '%';
-          progressText.textContent = progressPercent.toFixed(1) + '%';
-          if (progressPercent >= 95) {
-            progressFill.style.backgroundColor = 'green';
-          } else if (progressPercent >= 50) {
-            progressFill.style.backgroundColor = 'yellow';
-          } else {
-            progressFill.style.backgroundColor = 'red';
-          }
-          console.log(`Account: ${accountName} | Target: ${targetNum} | Current: ${currentBalNum} | Progress: ${progressPercent}%`);
-        }
-
-        inputTarget.addEventListener('blur', finalizeInput);
-
-        inputTarget.addEventListener('input', () => {
-          if (inputTarget.value.trim() === "") {
-            const displaySpan = cellTarget.querySelector('.target-display');
-            if (displaySpan) displaySpan.remove();
-          }
-        });
       });
     };
 
