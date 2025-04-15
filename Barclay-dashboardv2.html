@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Preconnect and import Roboto for modern typography -->
+  <!-- Import Roboto for modern typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -29,11 +29,10 @@
     a:hover {
       text-decoration: underline;
     }
-
     /* Navigation Bar */
     nav {
       background-color: #fff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       padding: 10px 0;
       text-align: center;
       margin-bottom: 20px;
@@ -43,7 +42,6 @@
       font-size: 1rem;
       font-weight: 500;
     }
-
     /* Dashboard Grid Layout */
     .dashboard-grid {
       display: grid;
@@ -61,7 +59,6 @@
       #barclay-accounts { grid-area: accounts; }
       #utility-data { grid-area: utility; }
     }
-
     /* Card Styles for Each Section */
     section {
       background: #fff;
@@ -76,8 +73,7 @@
       padding-bottom: 8px;
       margin-bottom: 16px;
     }
-
-    /* NEW: Barclay Accounts Container & Cards with Fixed Layout */
+    /* Barclays Accounts Card Styles */
     #barclay-accounts-container {
       display: flex;
       flex-direction: column;
@@ -92,8 +88,6 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       padding: 12px 16px;
     }
-
-    /* Left side: fixed width for account info */
     .account-info {
       width: 40%;
       min-width: 180px;
@@ -110,8 +104,6 @@
       font-weight: 500;
       font-size: 0.95rem;
     }
-
-    /* Right side: fixed width for progress details */
     .progress-section {
       width: 60%;
       min-width: 220px;
@@ -124,8 +116,6 @@
       font-size: 0.9rem;
       color: #666;
     }
-
-    /* Updated Progress Bar: taller, improved text visibility */
     .custom-progress-bar {
       position: relative;
       width: 100%;
@@ -138,7 +128,6 @@
       height: 100%;
       transition: width 0.3s ease, background-color 0.3s ease;
     }
-    /* White text with a slight shadow for better contrast */
     .custom-progress-text {
       position: absolute;
       width: 100%;
@@ -146,13 +135,12 @@
       top: 0;
       left: 0;
       line-height: 16px;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       color: #fff;
-      text-shadow: 0 0 2px rgba(0,0,0,0.5);
       font-weight: 500;
+      text-shadow: 0 0 2px rgba(0,0,0,0.5);
       pointer-events: none;
     }
-
     /* Utility Data Table Styles */
     #utility-table {
       width: 100%;
@@ -181,7 +169,6 @@
       padding: 10px;
       background: #f7f7f7;
     }
-
     /* Property Info Card Styles */
     #property-info .info-row {
       display: flex;
@@ -211,7 +198,7 @@
 
   <!-- Main Dashboard Grid -->
   <div class="dashboard-grid">
-    <!-- Property Info Card -->
+    <!-- Property Info Section -->
     <section id="property-info">
       <h2>Property Info</h2>
       <div class="info-row">
@@ -232,13 +219,13 @@
       </div>
     </section>
 
-    <!-- Barclays Accounts Card -->
+    <!-- Barclays Accounts Section -->
     <section id="barclay-accounts">
       <h2>Barclay Accounts</h2>
       <div id="barclay-accounts-container"></div>
     </section>
 
-    <!-- Utility Data Card -->
+    <!-- Utility Data Section -->
     <section id="utility-data">
       <h2>Utility Data</h2>
       <table id="utility-table">
@@ -262,24 +249,24 @@
   </div>
 
   <script>
-    // =============================================
-    // Configuration: API Key, Sheet ID, etc.
-    // =============================================
-    const apiKey = 'YOUR_GOOGLE_SHEETS_API_KEY';
-    const sheetId = 'YOUR_GOOGLE_SHEETS_ID';
+    // =====================================================
+    // Configuration
+    // =====================================================
+    const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
+    const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
 
     const barclayAccounts = [
+      "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
-      "SoFi SoFi Checking (9237)",
-      "SoFi Vacancy Fund (4503)",
       "SoFi Maintenance Fund (4502)",
-      "SoFi SoFi Savings (4386)"
+      "SoFi Vacancy Fund (4503)",
+      "SoFi SoFi Checking (9237)"
     ];
     const mortgageAccountName = "U.S. Bank 1160 Barclay - 8584 (8584)";
 
-    // =============================================
+    // =====================================================
     // Shared Utility Functions
-    // =============================================
+    // =====================================================
     async function fetchSheetData(range) {
       const timestamp = new Date().getTime();
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}&t=${timestamp}`;
@@ -307,12 +294,13 @@
       });
     }
 
-    // =============================================
-    // Barclays Accounts
-    // =============================================
+    // =====================================================
+    // Barclays Accounts Functions
+    // =====================================================
     function transformBalanceData(data) {
       if (data.length === 0) return [];
       const results = [];
+      // Skip header row.
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
         results.push({
@@ -338,6 +326,7 @@
     function transformGoalData(data) {
       if (data.length === 0) return {};
       const map = {};
+      // Skip header row.
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
         const account = row[0] || '';
@@ -351,7 +340,6 @@
       const balanceRaw = await fetchSheetData('Balance History (BTS)!A1:D');
       const balanceData = transformBalanceData(balanceRaw);
       const latestMap = getLatestBalances(balanceData);
-
       const goalsRaw = await fetchSheetData('1160 Barclay!D1:F');
       const goalMap = transformGoalData(goalsRaw);
 
@@ -368,7 +356,7 @@
         return { accountName, currentBalanceNum, targetNum, progressPct };
       });
 
-      // Sort by progress descending, then current balance if tie
+      // Sort accounts: first by progress descending, then by current balance if tie.
       accountRows.sort((a, b) => {
         if (b.progressPct !== a.progressPct) {
           return b.progressPct - a.progressPct;
@@ -379,15 +367,12 @@
 
       const container = document.getElementById('barclay-accounts-container');
       container.innerHTML = "";
-
       accountRows.forEach(rowData => {
         const { accountName, currentBalanceNum, targetNum, progressPct } = rowData;
-
-        // Create the "card" row
         const card = document.createElement('div');
         card.className = 'account-card';
 
-        // Left side: account info
+        // Left side: Account info
         const leftSide = document.createElement('div');
         leftSide.className = 'account-info';
         const nameEl = document.createElement('span');
@@ -398,22 +383,21 @@
         balanceEl.textContent = formatCurrency(currentBalanceNum);
         leftSide.appendChild(nameEl);
         leftSide.appendChild(balanceEl);
+        card.appendChild(leftSide);
 
-        // Right side: progress details
+        // Right side: Progress details
         const rightSide = document.createElement('div');
         rightSide.className = 'progress-section';
+        const targetEl = document.createElement('span');
+        targetEl.className = 'target-text';
+        targetEl.textContent = "Target: " + formatCurrency(targetNum);
+        rightSide.appendChild(targetEl);
 
-        const targetSpan = document.createElement('span');
-        targetSpan.className = 'target-text';
-        targetSpan.textContent = "Target: " + formatCurrency(targetNum);
-
-        // Create the progress bar
         const progressBar = document.createElement('div');
         progressBar.className = 'custom-progress-bar';
         const progressFill = document.createElement('div');
         progressFill.className = 'custom-progress-fill';
         progressFill.style.width = progressPct + '%';
-        // Color thresholds
         if (progressPct >= 95) {
           progressFill.style.backgroundColor = 'green';
         } else if (progressPct >= 50) {
@@ -427,19 +411,15 @@
 
         progressBar.appendChild(progressFill);
         progressBar.appendChild(progressText);
-
-        rightSide.appendChild(targetSpan);
         rightSide.appendChild(progressBar);
-
-        // Combine
-        card.appendChild(leftSide);
         card.appendChild(rightSide);
+
         container.appendChild(card);
       });
     }
 
     // =============================================
-    // Utility Data
+    // Utility Data Functions
     // =============================================
     function formatDateLong(dateStr) {
       if (!dateStr) return dateStr;
@@ -472,7 +452,6 @@
         const amount = parseBalance(amountStr);
         totalAmount += amount;
         const formattedDate = formatDateLong(dateStr);
-
         const tr = document.createElement("tr");
         const tdCompany = document.createElement("td");
         tdCompany.textContent = company;
@@ -489,16 +468,16 @@
     }
 
     // =============================================
-    // Property Info
+    // Property Info Functions
     // =============================================
     async function loadPropertyInfo() {
-      // 1) Zestimate from '1160 Barclay!I2'
+      // Zestimate from '1160 Barclay!I2'
       const zestimateArr = await fetchSheetData("1160 Barclay!I2:I2");
       let zestimateNum = 0;
       if (zestimateArr.length > 0 && zestimateArr[0].length > 0) {
         zestimateNum = parseBalance(zestimateArr[0][0]);
       }
-      // 2) Mortgage Balance from "Balance History (BTS)!A1:D"
+      // Mortgage Balance: from "Balance History (BTS)!A1:D" for mortgageAccountName
       const balanceRaw = await fetchSheetData("Balance History (BTS)!A1:D");
       const balanceData = transformBalanceData(balanceRaw);
       const latestMap = getLatestBalances(balanceData);
@@ -506,9 +485,9 @@
       if (latestMap[mortgageAccountName]) {
         mortgageBalanceNum = parseBalance(latestMap[mortgageAccountName].balance);
       }
-      // 3) Equity = Zestimate - Mortgage
+      // Equity = Zestimate - Mortgage
       const equityNum = zestimateNum - mortgageBalanceNum;
-      // 4) Selling Proceeds = Equity * 0.91
+      // Selling Proceeds = Equity * 0.91
       const sellingNum = equityNum * 0.91;
 
       document.getElementById("zestimate-value").textContent = formatCurrency(zestimateNum);
