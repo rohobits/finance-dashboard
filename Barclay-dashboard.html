@@ -84,11 +84,11 @@
   </table>
 
   <script>
-    // Using your API key and sheet ID:
+    // Your API key and Sheet ID
     const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
     const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
 
-    // List of Barclay account names (must exactly match the sheet).
+    // List of Barclay account names (must exactly match what is in your sheet)
     const barclayAccounts = [
       "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
@@ -97,7 +97,7 @@
       "SoFi SoFi Checking (9237)"
     ];
 
-    // Fetch data from Google Sheets with a timestamp to avoid caching.
+    // Fetch data from Google Sheets with a cache-busting timestamp.
     const fetchSheetData = async (range) => {
       const timestamp = new Date().getTime();
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}&t=${timestamp}`;
@@ -113,8 +113,8 @@
       }
     };
 
-    // Transform Balance History data from "Balance History (BTS)!A1:D".
-    // Expected columns: A: Date, B: Account Name, D: Current Balance.
+    // Transform the "Balance History (BTS)!A1:D" data.
+    // Expected columns: A = Date, B = Account Name, D = Current Balance.
     const transformBalanceData = (data) => {
       if (data.length === 0) return [];
       const results = [];
@@ -129,7 +129,7 @@
       return results;
     };
 
-    // Create a map of the most recent balance for each account.
+    // Build a map with the most recent balance for each account.
     const getLatestBalances = (transformedData) => {
       const map = {};
       transformedData.forEach(({ dateStr, accountName, currentBalance }) => {
@@ -142,11 +142,10 @@
     };
 
     // Transform target data from "1160 Barclay!D1:F".
-    // Expected: Column D: Account Name, Column F: Target Amount.
+    // Expected columns: D = Account Name, F = Target Amount.
     const transformGoalData = (data) => {
       if (data.length === 0) return {};
       const map = {};
-      // Assume row 0 is header; start at index 1.
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
         const account = row[0] || '';
@@ -156,13 +155,13 @@
       return map;
     };
 
-    // Helper to parse a balance or currency string.
+    // Helper: Parse a string to a number by removing non-numeric characters.
     const parseBalance = (balanceStr) => {
       if (!balanceStr) return 0;
       return parseFloat(balanceStr.replace(/[^0-9.-]+/g, "")) || 0;
     };
 
-    // Helper to format a number as US currency.
+    // Helper: Format a number as US currency.
     const formatCurrency = (amount) => {
       return "$" + amount.toLocaleString("en-US", {
         minimumFractionDigits: 2,
@@ -172,61 +171,79 @@
 
     // Main logic to build the table.
     const loadBarclayAccounts = async () => {
-      // A) Fetch current balance data.
+      // 1. Fetch current balances.
       const balanceRaw = await fetchSheetData('Balance History (BTS)!A1:D');
-      const balanceTransformed = transformBalanceData(balanceRaw);
-      const latestMap = getLatestBalances(balanceTransformed);
-
-      // B) Fetch target amounts from "1160 Barclay!D1:F"
+      const balanceData = transformBalanceData(balanceRaw);
+      const latestMap = getLatestBalances(balanceData);
+      
+      // 2. Fetch target amounts.
       const goalsRaw = await fetchSheetData('1160 Barclay!D1:F');
       const goalMap = transformGoalData(goalsRaw);
 
-      // C) Build table rows.
-      const table = document.getElementById('barclay-accounts-table');
-
-      barclayAccounts.forEach((accountName) => {
-        // Use current balance from latestMap (or default to 0).
+      // 3. Build an array of account objects with computed values.
+      const accountRows = barclayAccounts.map((accountName) => {
+        // Get current balance (or default to 0)
         const currentInfo = latestMap[accountName] || { date: new Date(), balance: "0" };
         const currentBalanceNum = parseBalance(currentInfo.balance);
-
-        // Get the target from goalMap (or default to 0).
+        // Get target value (or default to 0)
         const targetStr = goalMap[accountName] || "0";
         const targetNum = parseBalance(targetStr);
-
-        // Create a row.
-        const row = document.createElement('tr');
-
-        // Account cell.
-        const cellAccount = document.createElement('td');
-        cellAccount.textContent = accountName;
-        row.appendChild(cellAccount);
-
-        // Current Balance cell.
-        const cellCurrent = document.createElement('td');
-        cellCurrent.textContent = formatCurrency(currentBalanceNum);
-        row.appendChild(cellCurrent);
-
-        // Target Amount cell.
-        const cellTarget = document.createElement('td');
-        cellTarget.textContent = formatCurrency(targetNum);
-        row.appendChild(cellTarget);
-
-        // Progress cell.
-        const cellProgress = document.createElement('td');
-        const progressContainer = document.createElement('div');
-        progressContainer.className = 'progress-container';
-
-        const progressFill = document.createElement('div');
-        progressFill.className = 'progress-fill';
 
         let progressPct = 0;
         if (targetNum > 0) {
           progressPct = (currentBalanceNum / targetNum) * 100;
           if (progressPct > 100) progressPct = 100;
         }
+        return {
+          accountName,
+          currentBalanceNum,
+          targetNum,
+          progressPct
+        };
+      });
+
+      // 4. Sort the account rows:
+      //    - Primary sort: descending by progressPct.
+      //    - If progressPct is identical (i.e. both are 100%), then sort by currentBalanceNum descending.
+      accountRows.sort((a, b) => {
+        if (b.progressPct !== a.progressPct) {
+          return b.progressPct - a.progressPct;
+        } else {
+          return b.currentBalanceNum - a.currentBalanceNum;
+        }
+      });
+
+      // 5. Build the table.
+      const table = document.getElementById('barclay-accounts-table');
+      accountRows.forEach((rowData) => {
+        const { accountName, currentBalanceNum, targetNum, progressPct } = rowData;
+        const row = document.createElement('tr');
+
+        // Account Name
+        const cellAccount = document.createElement('td');
+        cellAccount.textContent = accountName;
+        row.appendChild(cellAccount);
+
+        // Current Balance
+        const cellCurrent = document.createElement('td');
+        cellCurrent.textContent = formatCurrency(currentBalanceNum);
+        row.appendChild(cellCurrent);
+
+        // Target Amount
+        const cellTarget = document.createElement('td');
+        cellTarget.textContent = formatCurrency(targetNum);
+        row.appendChild(cellTarget);
+
+        // Progress Bar
+        const cellProgress = document.createElement('td');
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-container';
+
+        const progressFill = document.createElement('div');
+        progressFill.className = 'progress-fill';
         progressFill.style.width = progressPct + '%';
 
-        // Set the fill color based on progress thresholds.
+        // Set color thresholds.
         if (progressPct >= 95) {
           progressFill.style.backgroundColor = 'green';
         } else if (progressPct >= 50) {
@@ -244,7 +261,6 @@
         cellProgress.appendChild(progressContainer);
         row.appendChild(cellProgress);
 
-        // Append the row to the table.
         table.appendChild(row);
       });
     };
