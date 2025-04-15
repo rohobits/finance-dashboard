@@ -29,6 +29,7 @@
     a:hover {
       text-decoration: underline;
     }
+
     /* Navigation Bar */
     nav {
       background-color: #fff;
@@ -42,6 +43,7 @@
       font-size: 1rem;
       font-weight: 500;
     }
+
     /* Dashboard Grid Layout */
     .dashboard-grid {
       display: grid;
@@ -59,6 +61,7 @@
       #barclay-accounts { grid-area: accounts; }
       #utility-data { grid-area: utility; }
     }
+
     /* Card Styles for Each Section */
     section {
       background: #fff;
@@ -73,70 +76,83 @@
       padding-bottom: 8px;
       margin-bottom: 16px;
     }
-    /* Barclays Accounts Card Styles (New Layout) */
+
+    /* NEW: Barclay Accounts Container & Cards with Fixed Layout */
     #barclay-accounts-container {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
     .account-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       background: #fff;
       border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       padding: 12px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
-    .account-details {
+
+    /* Left side: fixed width for account info */
+    .account-info {
+      width: 40%;
+      min-width: 180px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 5px;
     }
     .account-name {
       font-weight: 700;
-      font-size: 1.1em;
+      font-size: 1.05rem;
     }
     .current-balance {
       color: #0077cc;
       font-weight: 500;
-      font-size: 1rem;
+      font-size: 0.95rem;
     }
+
+    /* Right side: fixed width for progress details */
     .progress-section {
-      flex: 1;
+      width: 60%;
+      min-width: 220px;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
+      gap: 5px;
     }
     .target-text {
       font-size: 0.9rem;
       color: #666;
-      margin-bottom: 4px;
     }
+
+    /* Updated Progress Bar: taller, improved text visibility */
     .custom-progress-bar {
       position: relative;
-      height: 10px;
-      background-color: #e2dfdc;
-      border-radius: 5px;
       width: 100%;
+      height: 16px;
+      background-color: #e2dfdc;
+      border-radius: 8px;
       overflow: hidden;
     }
     .custom-progress-fill {
       height: 100%;
       transition: width 0.3s ease, background-color 0.3s ease;
     }
+    /* White text with a slight shadow for better contrast */
     .custom-progress-text {
       position: absolute;
       width: 100%;
       text-align: center;
       top: 0;
       left: 0;
-      line-height: 10px;
-      font-size: 0.85rem;
+      line-height: 16px;
+      font-size: 0.8rem;
       color: #fff;
+      text-shadow: 0 0 2px rgba(0,0,0,0.5);
       font-weight: 500;
       pointer-events: none;
     }
+
     /* Utility Data Table Styles */
     #utility-table {
       width: 100%;
@@ -165,6 +181,7 @@
       padding: 10px;
       background: #f7f7f7;
     }
+
     /* Property Info Card Styles */
     #property-info .info-row {
       display: flex;
@@ -245,24 +262,24 @@
   </div>
 
   <script>
-    // =====================================================
-    // Configuration: API Key, Sheet ID, and Account Names
-    // =====================================================
-    const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
-    const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
+    // =============================================
+    // Configuration: API Key, Sheet ID, etc.
+    // =============================================
+    const apiKey = 'YOUR_GOOGLE_SHEETS_API_KEY';
+    const sheetId = 'YOUR_GOOGLE_SHEETS_ID';
 
     const barclayAccounts = [
-      "SoFi SoFi Savings (4386)",
       "SoFi Security Deposit (4501)",
-      "SoFi Maintenance Fund (4502)",
+      "SoFi SoFi Checking (9237)",
       "SoFi Vacancy Fund (4503)",
-      "SoFi SoFi Checking (9237)"
+      "SoFi Maintenance Fund (4502)",
+      "SoFi SoFi Savings (4386)"
     ];
     const mortgageAccountName = "U.S. Bank 1160 Barclay - 8584 (8584)";
 
-    // =====================================================
+    // =============================================
     // Shared Utility Functions
-    // =====================================================
+    // =============================================
     async function fetchSheetData(range) {
       const timestamp = new Date().getTime();
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}&t=${timestamp}`;
@@ -290,13 +307,12 @@
       });
     }
 
-    // =====================================================
-    // Barclays Accounts Functions
-    // =====================================================
+    // =============================================
+    // Barclays Accounts
+    // =============================================
     function transformBalanceData(data) {
       if (data.length === 0) return [];
       const results = [];
-      // Assume the first row is a header
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
         results.push({
@@ -322,7 +338,6 @@
     function transformGoalData(data) {
       if (data.length === 0) return {};
       const map = {};
-      // Assume first row is header
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
         const account = row[0] || '';
@@ -336,6 +351,7 @@
       const balanceRaw = await fetchSheetData('Balance History (BTS)!A1:D');
       const balanceData = transformBalanceData(balanceRaw);
       const latestMap = getLatestBalances(balanceData);
+
       const goalsRaw = await fetchSheetData('1160 Barclay!D1:F');
       const goalMap = transformGoalData(goalsRaw);
 
@@ -352,7 +368,7 @@
         return { accountName, currentBalanceNum, targetNum, progressPct };
       });
 
-      // Sort: first by progress descending, then by current balance if tie
+      // Sort by progress descending, then current balance if tie
       accountRows.sort((a, b) => {
         if (b.progressPct !== a.progressPct) {
           return b.progressPct - a.progressPct;
@@ -363,37 +379,41 @@
 
       const container = document.getElementById('barclay-accounts-container');
       container.innerHTML = "";
+
       accountRows.forEach(rowData => {
         const { accountName, currentBalanceNum, targetNum, progressPct } = rowData;
+
+        // Create the "card" row
         const card = document.createElement('div');
         card.className = 'account-card';
 
-        // Left side: account details
-        const details = document.createElement('div');
-        details.className = 'account-details';
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'account-name';
-        nameSpan.textContent = accountName;
-        const balanceSpan = document.createElement('span');
-        balanceSpan.className = 'current-balance';
-        balanceSpan.textContent = formatCurrency(currentBalanceNum);
-        details.appendChild(nameSpan);
-        details.appendChild(balanceSpan);
-        card.appendChild(details);
+        // Left side: account info
+        const leftSide = document.createElement('div');
+        leftSide.className = 'account-info';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'account-name';
+        nameEl.textContent = accountName;
+        const balanceEl = document.createElement('span');
+        balanceEl.className = 'current-balance';
+        balanceEl.textContent = formatCurrency(currentBalanceNum);
+        leftSide.appendChild(nameEl);
+        leftSide.appendChild(balanceEl);
 
-        // Right side: progress section
-        const progressSection = document.createElement('div');
-        progressSection.className = 'progress-section';
+        // Right side: progress details
+        const rightSide = document.createElement('div');
+        rightSide.className = 'progress-section';
+
         const targetSpan = document.createElement('span');
         targetSpan.className = 'target-text';
         targetSpan.textContent = "Target: " + formatCurrency(targetNum);
-        progressSection.appendChild(targetSpan);
 
+        // Create the progress bar
         const progressBar = document.createElement('div');
         progressBar.className = 'custom-progress-bar';
         const progressFill = document.createElement('div');
         progressFill.className = 'custom-progress-fill';
         progressFill.style.width = progressPct + '%';
+        // Color thresholds
         if (progressPct >= 95) {
           progressFill.style.backgroundColor = 'green';
         } else if (progressPct >= 50) {
@@ -404,18 +424,23 @@
         const progressText = document.createElement('span');
         progressText.className = 'custom-progress-text';
         progressText.textContent = progressPct.toFixed(1) + '%';
+
         progressBar.appendChild(progressFill);
         progressBar.appendChild(progressText);
-        progressSection.appendChild(progressBar);
-        card.appendChild(progressSection);
 
+        rightSide.appendChild(targetSpan);
+        rightSide.appendChild(progressBar);
+
+        // Combine
+        card.appendChild(leftSide);
+        card.appendChild(rightSide);
         container.appendChild(card);
       });
     }
 
-    // =====================================================
-    // Utility Data Functions
-    // =====================================================
+    // =============================================
+    // Utility Data
+    // =============================================
     function formatDateLong(dateStr) {
       if (!dateStr) return dateStr;
       const date = new Date(dateStr);
@@ -447,6 +472,7 @@
         const amount = parseBalance(amountStr);
         totalAmount += amount;
         const formattedDate = formatDateLong(dateStr);
+
         const tr = document.createElement("tr");
         const tdCompany = document.createElement("td");
         tdCompany.textContent = company;
@@ -462,17 +488,17 @@
       document.getElementById("total-amount").textContent = formatCurrency(totalAmount);
     }
 
-    // =====================================================
-    // Property Info Functions
-    // =====================================================
+    // =============================================
+    // Property Info
+    // =============================================
     async function loadPropertyInfo() {
-      // Zestimate from '1160 Barclay!I2'
+      // 1) Zestimate from '1160 Barclay!I2'
       const zestimateArr = await fetchSheetData("1160 Barclay!I2:I2");
       let zestimateNum = 0;
       if (zestimateArr.length > 0 && zestimateArr[0].length > 0) {
         zestimateNum = parseBalance(zestimateArr[0][0]);
       }
-      // Mortgage Balance from "Balance History (BTS)!A1:D" for mortgageAccountName
+      // 2) Mortgage Balance from "Balance History (BTS)!A1:D"
       const balanceRaw = await fetchSheetData("Balance History (BTS)!A1:D");
       const balanceData = transformBalanceData(balanceRaw);
       const latestMap = getLatestBalances(balanceData);
@@ -480,9 +506,9 @@
       if (latestMap[mortgageAccountName]) {
         mortgageBalanceNum = parseBalance(latestMap[mortgageAccountName].balance);
       }
-      // Equity = Zestimate - Mortgage
+      // 3) Equity = Zestimate - Mortgage
       const equityNum = zestimateNum - mortgageBalanceNum;
-      // Selling Proceeds = Equity * 0.91
+      // 4) Selling Proceeds = Equity * 0.91
       const sellingNum = equityNum * 0.91;
 
       document.getElementById("zestimate-value").textContent = formatCurrency(zestimateNum);
@@ -491,9 +517,9 @@
       document.getElementById("selling-value").textContent = formatCurrency(sellingNum);
     }
 
-    // =====================================================
+    // =============================================
     // Load All Data on DOMContentLoaded
-    // =====================================================
+    // =============================================
     document.addEventListener("DOMContentLoaded", () => {
       loadBarclayAccounts();
       loadUtilityData();
