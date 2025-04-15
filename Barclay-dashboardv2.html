@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Combined Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    /* Navigation styling */
+    nav {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      margin: 0 10px;
+      text-decoration: none;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    /* Shared table styling */
+    table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    /* Progress bar styles (for Barclay Accounts) */
+    .progress-container {
+      position: relative;
+      width: 100%;
+      height: 20px;
+      background: #ddd;
+      border: 1px solid #ccc;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+    .progress-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      top: 0;
+      left: 0;
+      line-height: 20px;
+      font-size: 0.9em;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation with internal links for each section -->
+  <nav>
+    <a href="./index.html">Dashboard</a> |
+    <a href="./account-balances.html">Account Balances</a> |
+    <a href="./barclay-accounts.html">Barclay Accounts</a> |
+    <a href="#barclay-accounts">Barclay Accounts Data</a> |
+    <a href="#utility-data">Utility Data</a>
+  </nav>
+
+  <h1>Combined Dashboard</h1>
+
+  <!-- Section for Barclay Accounts -->
+  <section id="barclay-accounts">
+    <h2>Barclay Accounts</h2>
+    <table id="barclay-accounts-table">
+      <tr>
+        <th>Account</th>
+        <th>Current Balance</th>
+        <th>Target Amount</th>
+        <th>Progress</th>
+      </tr>
+    </table>
+  </section>
+
+  <!-- Section for Utility Data -->
+  <section id="utility-data">
+    <h2>Utility Data</h2>
+    <table id="utility-table">
+      <thead>
+        <tr>
+          <th>Utility Company</th>
+          <th>Amount Due</th>
+          <th>Due Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Utility rows will be appended here -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="1">Total</td>
+          <td id="total-amount"></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <script>
+    // Your API key and sheet ID:
+    const apiKey = 'AIzaSyCOWwWf8oy-6PFuWJs68pxxzx_wvkyeSak';
+    const sheetId = '1gXFatgQqNwVEn3aatV3tjfl3WxXCo5VgwlxPodLT6fs';
+
+    // List of Barclay account names to display (must match exactly with sheet names)
+    const barclayAccounts = [
+      "SoFi SoFi Savings (4386)",
+      "SoFi Security Deposit (4501)",
+      "SoFi Maintenance Fund (4502)",
+      "SoFi Vacancy Fund (4503)",
+      "SoFi SoFi Checking (9237)"
+    ];
+
+    // ---------- Shared Utility Functions ----------
+    // Generic function to fetch data from a given range.
+    async function fetchSheetData(range) {
+      const timestamp = new Date().getTime();
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}&t=${timestamp}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        console.log(`Fetched data for ${range}:`, data);
+        return data.values || [];
+      } catch (error) {
+        console.error('Error fetching sheet data:', error);
+        return [];
+      }
+    }
+
+    // Parse balance or currency string into a number.
+    function parseBalance(str) {
+      if (!str) return 0;
+      return parseFloat(str.replace(/[^0-9.-]+/g, "")) || 0;
+    }
+
+    // Format a number as US currency.
+    function formatCurrency(amount) {
+      return "$" + amount.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    // ---------- Date Formatting Functions for Utility Data ----------
+    // Convert a YYYY-MM-DD string to "Month dayOrdinal" (e.g., "April 4th")
+    function formatDateLong(dateStr) {
+      if (!dateStr) return dateStr;
+      const date = new Date(dateStr);
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const monthName = monthNames[date.getMonth()];
+      const day = date.getDate();
+      return monthName + " " + getOrdinal(day);
+    }
+    // Get ordinal suffix (st, nd, rd, th)
+    function getOrdinal(n) {
+      const j = n % 10, k = n % 100;
+      if (j === 1 && k !== 11) return n + "st";
+      if (j === 2 && k !== 12) return n + "nd";
+      if (j === 3 && k !== 13) return n + "rd";
+      return n + "th";
+    }
+
+    // ---------- Barclay Accounts Data Functions ----------
+    // Transform "Balance History (BTS)!A1:D" data into an array of objects.
+    function transformBalanceData(data) {
+      if (data.length === 0) return [];
+      const results = [];
+      // Assume the first row is a header.
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        results.push({
+          dateStr: row[0] || '',
+          accountName: row[1] || '',
+          currentBalance: row[3] || '0'
+        });
+      }
+      return results;
+    }
+
+    // Build a map for the most recent balance per account.
+    function getLatestBalances(transformedData) {
+      const map = {};
+      transformedData.forEach(({ dateStr, accountName, currentBalance }) => {
+        const thisDate = new Date(dateStr);
+        if (!map[accountName] || thisDate > map[accountName].date) {
+          map[accountName] = { date: thisDate, balance: currentBalance };
+        }
+      });
+      return map;
+    }
+
+    // Transform target (goal) data from "1160 Barclay!D1:F".
+    // Expected: Column D: Account Name, Column F: Target Amount.
+    function transformGoalData(data) {
+      if (data.length === 0) return {};
+      const map = {};
+      // Skip header row.
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const account = row[0] || '';
+        const targetStr = row[2] || '0';
+        map[account] = targetStr;
+      }
+      return map;
+    }
+
+    // Load and display Barclay Accounts.
+    async function loadBarclayAccounts() {
+      // Fetch current balances.
+      const balanceRaw = await fetchSheetData('Balance History (BTS)!A1:D');
+      const balanceData = transformBalanceData(balanceRaw);
+      const latestMap = getLatestBalances(balanceData);
+
+      // Fetch targets.
+      const goalsRaw = await fetchSheetData('1160 Barclay!D1:F');
+      const goalMap = transformGoalData(goalsRaw);
+
+      // Build an array of account objects with computed values.
+      const accountRows = barclayAccounts.map((accountName) => {
+        const currentInfo = latestMap[accountName] || { date: new Date(), balance: "0" };
+        const currentBalanceNum = parseBalance(currentInfo.balance);
+        const targetStr = goalMap[accountName] || "0";
+        const targetNum = parseBalance(targetStr);
+        let progressPct = 0;
+        if (targetNum > 0) {
+          progressPct = (currentBalanceNum / targetNum) * 100;
+          if (progressPct > 100) progressPct = 100;
+        }
+        return {
+          accountName,
+          currentBalanceNum,
+          targetNum,
+          progressPct
+        };
+      });
+
+      // Sort accounts:
+      // First by progressPct descending.
+      // Then, if progressPct is equal (e.g., 100%), sort by currentBalanceNum descending.
+      accountRows.sort((a, b) => {
+        if (b.progressPct !== a.progressPct) {
+          return b.progressPct - a.progressPct;
+        } else {
+          return b.currentBalanceNum - a.currentBalanceNum;
+        }
+      });
+
+      // Build the table.
+      const table = document.getElementById('barclay-accounts-table');
+      accountRows.forEach((rowData) => {
+        const { accountName, currentBalanceNum, targetNum, progressPct } = rowData;
+        const row = document.createElement('tr');
+
+        // Account cell.
+        const cellAccount = document.createElement('td');
+        cellAccount.textContent = accountName;
+        row.appendChild(cellAccount);
+
+        // Current Balance cell.
+        const cellCurrent = document.createElement('td');
+        cellCurrent.textContent = formatCurrency(currentBalanceNum);
+        row.appendChild(cellCurrent);
+
+        // Target Amount cell.
+        const cellTarget = document.createElement('td');
+        cellTarget.textContent = formatCurrency(targetNum);
+        row.appendChild(cellTarget);
+
+        // Progress cell.
+        const cellProgress = document.createElement('td');
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-container';
+
+        const progressFill = document.createElement('div');
+        progressFill.className = 'progress-fill';
+        progressFill.style.width = progressPct + '%';
+        if (progressPct >= 95) {
+          progressFill.style.backgroundColor = 'green';
+        } else if (progressPct >= 50) {
+          progressFill.style.backgroundColor = 'yellow';
+        } else {
+          progressFill.style.backgroundColor = 'red';
+        }
+
+        const progressText = document.createElement('span');
+        progressText.className = 'progress-text';
+        progressText.textContent = progressPct.toFixed(1) + '%';
+
+        progressContainer.appendChild(progressFill);
+        progressContainer.appendChild(progressText);
+        cellProgress.appendChild(progressContainer);
+        row.appendChild(cellProgress);
+
+        table.appendChild(row);
+      });
+    }
+
+    // ---------- Utility Data Functions ----------
+    // Load and display Utility Data.
+    // Data is stored in '1160 Barclay!A18:C20' where:
+    //   Column A: Utility Company, Column B: Amount Due, Column C: Date (YYYY-MM-DD)
+    async function loadUtilityData() {
+      const data = await fetchSheetData('1160 Barclay!A18:C20');
+      const tbody = document.querySelector("#utility-table tbody");
+      tbody.innerHTML = "";
+      let totalAmount = 0;
+
+      data.forEach(row => {
+        const company = row[0] || "Unknown";
+        const amountStr = row[1] || "0";
+        const dateStr = row[2] || "";
+        const amount = parseBalance(amountStr);
+        totalAmount += amount;
+        const formattedDate = formatDateLong(dateStr);
+
+        const tr = document.createElement("tr");
+
+        const tdCompany = document.createElement("td");
+        tdCompany.textContent = company;
+        tr.appendChild(tdCompany);
+
+        const tdAmount = document.createElement("td");
+        tdAmount.textContent = formatCurrency(amount);
+        tr.appendChild(tdAmount);
+
+        const tdDate = document.createElement("td");
+        tdDate.textContent = formattedDate;
+        tr.appendChild(tdDate);
+
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("total-amount").textContent = formatCurrency(totalAmount);
+    }
+
+    // ---------- On DOMContentLoaded, load both sections ----------
+    document.addEventListener("DOMContentLoaded", () => {
+      loadBarclayAccounts();
+      loadUtilityData();
+    });
+  </script>
+</body>
+</html>
